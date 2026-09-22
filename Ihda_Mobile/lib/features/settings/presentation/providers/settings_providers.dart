@@ -22,6 +22,11 @@ class SettingsController extends AsyncNotifier<AppSettings> {
     await _persist(current.copyWith(calculationMethod: method));
   }
 
+  Future<void> setAsrCalculation(AsrCalculation asr) async {
+    final current = state.valueOrNull ?? const AppSettings();
+    await _persist(current.copyWith(asrCalculation: asr));
+  }
+
   Future<void> setLanguage(String code) async {
     final current = state.valueOrNull ?? const AppSettings();
     await _persist(current.copyWith(languageCode: code));
@@ -50,6 +55,16 @@ class SettingsController extends AsyncNotifier<AppSettings> {
   Future<void> setDomain(String domain) async {
     final current = state.valueOrNull ?? const AppSettings();
     await _persist(current.copyWith(domain: domain));
+  }
+
+  Future<void> setFontSize(AppFontSize fontSize) async {
+    final current = state.valueOrNull ?? const AppSettings();
+    await _persist(current.copyWith(fontSize: fontSize));
+  }
+
+  Future<void> setFontFamily(String fontFamily) async {
+    final current = state.valueOrNull ?? const AppSettings();
+    await _persist(current.copyWith(fontFamily: fontFamily));
   }
 
   Future<void> togglePrayerMuted(PrayerType type) async {

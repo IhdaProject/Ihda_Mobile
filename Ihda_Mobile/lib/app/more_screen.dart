@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/localization/localization_provider.dart';
 import '../features/feed/domain/entities/feed_item.dart';
 import '../features/feed/presentation/screens/community_screen.dart';
 import '../features/feed/presentation/screens/hadith_duas_screen.dart';
-import '../features/map/presentation/screens/map_screen.dart';
-import '../features/prayer_times/presentation/screens/prayer_calendar_screen.dart';
+import '../features/location/presentation/screens/region_selection_screen.dart';
 import '../features/qazo/presentation/screens/qazo_screen.dart';
 import '../features/qibla/presentation/screens/qibla_screen.dart';
 import '../features/tasbih/presentation/screens/tasbih_screen.dart';
+import '../shared/widgets/design_background.dart';
+import '../shared/widgets/not_ready_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_spacing.dart';
-import 'theme/app_text_styles.dart';
-
-import '../shared/widgets/design_background.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -23,20 +21,61 @@ class MoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = <_MoreItem>[
-      _MoreItem('hadith'.tr(ref), Icons.menu_book_rounded,
-          () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.hadith))),
-      _MoreItem('dua'.tr(ref), Icons.volunteer_activism_rounded,
-          () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.dua))),
-      _MoreItem('verse'.tr(ref), Icons.auto_stories_rounded,
-          () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.verse))),
-      _MoreItem('community'.tr(ref), Icons.groups_rounded, () => _push(context, const CommunityScreen())),
-      _MoreItem('tasbih'.tr(ref), Icons.track_changes_rounded, () => _push(context, const TasbihScreen())),
-      _MoreItem('qazo'.tr(ref), Icons.event_repeat_rounded, () => _push(context, const QazoScreen())),
-      _MoreItem('qibla'.tr(ref), Icons.explore_rounded, () => _push(context, const QiblaScreen())),
-      _MoreItem('Taqvim', Icons.calendar_month_rounded, () => _push(context, const PrayerCalendarScreen())),
-      _MoreItem('Islom.uz', Icons.public_rounded, () => _openLink(context, 'https://islom.uz')),
-      _MoreItem('Radio', Icons.radio_rounded,
-          () => _snack(context, 'Radio - keyinroq ulanadi')),
+      _MoreItem(
+        "Qur'on",
+        Icons.menu_book_rounded,
+        () => _push(context, const NotReadyScreen(title: "Qur'oni Karim", icon: Icons.menu_book_rounded)),
+      ),
+      _MoreItem(
+        'hadith'.tr(ref),
+        Icons.auto_stories_rounded,
+        () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.hadith)),
+      ),
+      _MoreItem(
+        'verse'.tr(ref),
+        Icons.format_quote_rounded,
+        () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.verse)),
+      ),
+      _MoreItem(
+        'tasbih'.tr(ref),
+        Icons.touch_app_rounded,
+        () => _push(context, const TasbihScreen()),
+      ),
+      _MoreItem(
+        'qibla'.tr(ref),
+        Icons.explore_rounded,
+        () => _push(context, const QiblaScreen()),
+      ),
+      _MoreItem(
+        'Taqvim',
+        Icons.calendar_month_rounded,
+        () => _push(context, const RegionSelectionScreen()),
+      ),
+      _MoreItem(
+        'qazo'.tr(ref),
+        Icons.event_repeat_rounded,
+        () => _push(context, const QazoScreen()),
+      ),
+      _MoreItem(
+        'dua'.tr(ref),
+        Icons.volunteer_activism_rounded,
+        () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.dua)),
+      ),
+      _MoreItem(
+        'community'.tr(ref),
+        Icons.groups_rounded,
+        () => _push(context, const CommunityScreen()),
+      ),
+      _MoreItem(
+        'Islom.uz',
+        Icons.public_rounded,
+        () => _openLink(context, 'https://islom.uz'),
+      ),
+      _MoreItem(
+        'Radio',
+        Icons.radio_rounded,
+        () => _push(context, const NotReadyScreen(title: 'Islomiy Radio', icon: Icons.radio_rounded)),
+      ),
     ];
 
     return Scaffold(

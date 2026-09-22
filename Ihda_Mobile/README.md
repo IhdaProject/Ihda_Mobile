@@ -31,7 +31,7 @@ machine/SDK-generated).
 |---|---|---|
 | Asosiy | Home | Search bar, live prayer countdown, quick actions, nearby mosques |
 | Boshqalar | More | Grid: Hadislar, Duolar, Kundalik oyat, Community, Xarita, Tasbeh, Qazo, Qibla, Taqvim, Islom.uz, Radio |
-| Sevimlilar | Favorites | Saved mosques, 2-column grid |
+| Tanlanganlar | Favorites | Saved mosques, 2-column grid |
 | Joylashuv | Map | Placeholder map + nearest-mosque card |
 | Profil | Profile | Stats, links to Favorites/Settings/Notifications/Log out |
 

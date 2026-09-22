@@ -44,7 +44,17 @@ class MosqueCard extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
-                  child: Icon(Icons.mosque_rounded, size: 44, color: Theme.of(context).colorScheme.primary),
+                  child: Center(
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.mosque_rounded, size: 30, color: Theme.of(context).colorScheme.primary),
+                    ),
+                  ),
                 ),
                 Positioned(
                   top: 8,

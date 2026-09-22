@@ -44,10 +44,18 @@ class MosqueGridTile extends StatelessWidget {
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.md)),
                     ),
                     child: Center(
-                      child: Icon(
-                        Icons.mosque_rounded,
-                        size: 32,
-                        color: Theme.of(context).colorScheme.primary,
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.mosque_rounded,
+                          size: 26,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),

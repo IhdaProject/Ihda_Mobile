@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibration/vibration.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_radius.dart';
+import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/design_background.dart';
 import '../providers/tasbih_providers.dart';
 
@@ -32,7 +32,6 @@ class TasbihScreen extends ConsumerWidget {
             Vibration.vibrate(duration: 40);
           }
         } else {
-          // Fallback to haptic if vibration package fails
           HapticFeedback.lightImpact();
         }
       });
@@ -62,7 +61,7 @@ class TasbihScreen extends ConsumerWidget {
             child: SafeArea(
               child: Column(
                 children: [
-                  // Improved Header to prevent overflow
+                  // Top Navigation Header
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
                     child: Row(
@@ -100,55 +99,73 @@ class TasbihScreen extends ConsumerWidget {
                     ),
                   ),
                   const Spacer(flex: 2),
+                  
+                  // Counter Number Display
                   _TasbihCounter(count: count, limit: limit),
+                  
                   const Spacer(flex: 3),
-                  GestureDetector(
-                    onTap: () => _handleTap(ref),
-                    child: Container(
-                      width: 240, // Slightly reduced to look better
-                      height: 240,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                Theme.of(context).colorScheme.primary,
-                                Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                                blurRadius: 40,
-                                offset: const Offset(0, 15),
-                              ),
-                            ],
+                  
+                  // Clean, Simple, Elegant Center Button
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _handleTap(ref),
+                      borderRadius: BorderRadius.circular(100),
+                      child: Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                            width: 2,
                           ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.track_changes_rounded,
-                              color: Colors.white,
-                              size: 70,
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 150,
+                            height: 150,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Theme.of(context).colorScheme.primary,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.25),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.touch_app_rounded,
+                                  color: Colors.white,
+                                  size: 48,
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  'Bosing',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const Spacer(flex: 1),
+                  
+                  const Spacer(flex: 2),
+                  
+                  // Reset Button
                   TextButton.icon(
                     onPressed: () => ref.read(tasbihCountProvider.notifier).reset(),
                     icon: const Icon(Icons.refresh_rounded, size: 20),
@@ -229,8 +246,8 @@ class _TasbihCounter extends StatelessWidget {
         Text(
           '$count',
           style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                fontSize: 110,
-                fontWeight: FontWeight.w900,
+                fontSize: 100,
+                fontWeight: FontWeight.w800,
                 color: Theme.of(context).colorScheme.primary,
                 letterSpacing: -2,
               ),

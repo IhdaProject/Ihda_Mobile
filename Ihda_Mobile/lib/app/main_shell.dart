@@ -12,7 +12,7 @@ import 'providers/navigation_provider.dart';
 import '../features/notifications/presentation/providers/notification_scheduler.dart';
 
 /// Owns bottom-nav state and hosts the five top-level screens, matching the
-/// real app's tab bar: Asosiy (Home), Sevimlilar (Favorites), Joylashuv (Map), 
+/// real app's tab bar: Asosiy (Home), Tanlanganlar (Favorites), Joylashuv (Map),
 /// Boshqalar (More), Profil (Profile).
 class MainShell extends ConsumerWidget {
   const MainShell({super.key});

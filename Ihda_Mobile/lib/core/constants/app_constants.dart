@@ -10,6 +10,7 @@ class AppConstants {
   static const Duration apiTimeout = Duration(seconds: 15);
 
   static const String prefsKeyCalculationMethod = 'calculation_method';
+  static const String prefsKeyAsrCalculation = 'asr_calculation';
   static const String prefsKeyLanguage = 'language';
   static const String prefsKeyRegion = 'region';
   static const String prefsKeyNotificationsEnabled = 'notifications_enabled';
@@ -19,8 +20,8 @@ class AppConstants {
   static const String prefsKeyThemeMode = 'theme_mode';
   static const String prefsKeyDomain = 'app_domain';
 
-  static const String defaultCityName = 'Tashkent';
-  static const String defaultCountryName = 'Uzbekistan';
+  static const String defaultCityName = 'Toshkent shahri';
+  static const String defaultCountryName = "O'zbekiston";
   static const double defaultLatitude = 41.2995;
   static const double defaultLongitude = 69.2401;
 }
