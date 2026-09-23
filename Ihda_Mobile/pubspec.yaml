@@ -14,6 +14,9 @@ dependencies:
   # State management
   flutter_riverpod: ^2.5.1
 
+  # Google Fonts for dynamic font family support
+  google_fonts: ^6.2.1
+
   # Networking (used once real backend is connected)
   dio: ^5.4.3+1
 

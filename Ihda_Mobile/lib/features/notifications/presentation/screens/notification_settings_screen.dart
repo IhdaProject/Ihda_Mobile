@@ -348,8 +348,15 @@ class _PrayerNotificationCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Vaqtni sozlash:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  Expanded(
+                    child: Text(
+                      'Vaqtni sozlash:',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: const Icon(Icons.remove_circle_outline, size: 22),

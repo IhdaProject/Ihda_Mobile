@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
@@ -189,7 +190,13 @@ class SettingsScreen extends ConsumerWidget {
                 value: fontKey,
                 groupValue: settings.fontFamily,
                 activeColor: Theme.of(context).colorScheme.primary,
-                title: Text(fontLabel, style: TextStyle(fontFamily: fontKey, fontWeight: FontWeight.bold)),
+                title: Text(
+                  fontLabel,
+                  style: GoogleFonts.getFont(
+                    fontKey,
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ),
                 onChanged: (v) {
                   if (v != null) {
                     ref.read(settingsControllerProvider.notifier).setFontFamily(v);
@@ -368,27 +375,38 @@ class _SettingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      leading: Icon(
+        icon,
+        color: Theme.of(context).colorScheme.primary,
+        size: 22 * fontScale,
+      ),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (trailingText != null) ...[
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 120),
-              child: Text(
-                trailingText!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                overflow: TextOverflow.ellipsis,
+            Flexible(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 140 * fontScale),
+                child: Text(
+                  trailingText!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
             const SizedBox(width: 4),
           ],
-          Icon(Icons.chevron_right_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            size: 20 * fontScale,
+          ),
         ],
       ),
       onTap: onTap,
@@ -411,9 +429,14 @@ class _SwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
     return SwitchListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      secondary: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      secondary: Icon(
+        icon,
+        color: Theme.of(context).colorScheme.primary,
+        size: 22 * fontScale,
+      ),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
       value: value,
       onChanged: onChanged,

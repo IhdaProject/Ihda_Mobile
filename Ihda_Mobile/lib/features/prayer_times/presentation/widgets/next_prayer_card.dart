@@ -35,6 +35,8 @@ class NextPrayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final next = countdown.next;
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -64,19 +66,26 @@ class NextPrayerCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 if (countdown.remaining != null)
-                  Text(
-                    AppDateUtils.formatCountdown(countdown.remaining!),
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                          color: Colors.white,
-                          fontSize: 44,
-                          letterSpacing: 1.5,
-                        ),
+                  RepaintBoundary(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        AppDateUtils.formatCountdown(countdown.remaining!),
+                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                              color: Colors.white,
+                              fontSize: 44,
+                              letterSpacing: 1.5,
+                            ),
+                      ),
+                    ),
                   ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16 * fontScale),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               shape: BoxShape.circle,
@@ -84,7 +93,7 @@ class NextPrayerCard extends StatelessWidget {
             child: Icon(
               _getPrayerIcon(next?.type),
               color: Colors.white,
-              size: 48,
+              size: 40 * fontScale,
             ),
           ),
         ],

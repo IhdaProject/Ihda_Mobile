@@ -130,9 +130,10 @@ class QazoScreen extends ConsumerWidget {
 
                     const SizedBox(height: AppSpacing.md),
 
-                    // Quick Add Days Toolbar & Reset Button
+                    // Quick Add Days Toolbar & Reset Button (Edge-To-Edge Scroll)
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -198,25 +199,27 @@ class QazoScreen extends ConsumerWidget {
                         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           child: Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(10),
+                                padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
+                                child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
                               ),
-                              const SizedBox(width: 14),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       label,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const Text('Qazo miqdori', style: TextStyle(fontSize: 11, color: Colors.grey)),
                                   ],
@@ -224,7 +227,9 @@ class QazoScreen extends ConsumerWidget {
                               ),
                               // Decrement (-)
                               IconButton(
-                                icon: const Icon(Icons.remove_circle_outline_rounded, size: 28),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                icon: const Icon(Icons.remove_circle_outline_rounded, size: 24),
                                 color: value > 0 ? Theme.of(context).colorScheme.primary : Colors.grey,
                                 onPressed: value > 0
                                     ? () {
@@ -237,7 +242,7 @@ class QazoScreen extends ConsumerWidget {
                               GestureDetector(
                                 onTap: () => _showEditCountDialog(context, ref, key, label, value),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
@@ -245,7 +250,7 @@ class QazoScreen extends ConsumerWidget {
                                   child: Text(
                                     '$value',
                                     style: TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                       color: Theme.of(context).colorScheme.primary,
                                     ),
@@ -254,7 +259,9 @@ class QazoScreen extends ConsumerWidget {
                               ),
                               // Increment (+)
                               IconButton(
-                                icon: const Icon(Icons.add_circle_outline_rounded, size: 28),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                icon: const Icon(Icons.add_circle_outline_rounded, size: 24),
                                 color: Theme.of(context).colorScheme.primary,
                                 onPressed: () {
                                   controller.increment(key);

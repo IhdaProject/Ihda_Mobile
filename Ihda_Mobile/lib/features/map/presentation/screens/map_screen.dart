@@ -16,6 +16,20 @@ import '../../../mosques/presentation/providers/mosque_providers.dart';
 import '../../../mosques/presentation/screens/mosque_detail_screen.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 
+class SelectedMapTarget {
+  final Point point;
+  final String name;
+  final String mosqueId;
+
+  const SelectedMapTarget({
+    required this.point,
+    required this.name,
+    required this.mosqueId,
+  });
+}
+
+final selectedMapTargetProvider = StateProvider<SelectedMapTarget?>((ref) => null);
+
 enum TransportMode { driving, transit, walking }
 
 extension TransportModeX on TransportMode {
@@ -139,6 +153,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _updateMarkersAndSelectTarget() {
     final mosques = ref.read(mosqueControllerProvider).valueOrNull ?? [];
+    final targetFromProvider = ref.read(selectedMapTargetProvider);
+    final effectiveTargetPoint = widget.targetPoint ?? targetFromProvider?.point;
+    final effectiveTargetName = widget.targetName ?? targetFromProvider?.name;
     
     setState(() {
       _mapObjects.removeWhere((obj) => obj.mapId.value.startsWith('mosque_') || obj.mapId.value == 'user_location');
@@ -171,23 +188,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         );
       }
 
-      // Auto-select target if navigated from Mosque Detail Screen
-      if (widget.targetPoint != null && _selectedMosque == null) {
+      // Auto-select target if navigated from Mosque Detail Screen or Provider
+      if (effectiveTargetPoint != null && _selectedMosque == null) {
         final matched = mosques.firstWhere(
-          (m) => m.latitude == widget.targetPoint!.latitude && m.longitude == widget.targetPoint!.longitude,
+          (m) => m.latitude == effectiveTargetPoint.latitude && m.longitude == effectiveTargetPoint.longitude,
           orElse: () => Mosque(
-            id: 'target',
-            name: widget.targetName ?? 'Tanlangan Masjid',
+            id: targetFromProvider?.mosqueId ?? 'target',
+            name: effectiveTargetName ?? 'Tanlangan Masjid',
             address: 'Manzil',
             phone: '+998',
             distanceLabel: '2.4 km',
-            latitude: widget.targetPoint!.latitude,
-            longitude: widget.targetPoint!.longitude,
+            latitude: effectiveTargetPoint.latitude,
+            longitude: effectiveTargetPoint.longitude,
           ),
         );
         _selectedMosque = matched;
-        _buildRouteToPoint(widget.targetPoint!);
-        _moveToPoint(widget.targetPoint!);
+        _buildRouteToPoint(effectiveTargetPoint);
+        _moveToPoint(effectiveTargetPoint);
+
+        if (targetFromProvider != null) {
+          Future.microtask(() {
+            ref.read(selectedMapTargetProvider.notifier).state = null;
+          });
+        }
       } else if (_selectedMosque == null) {
         _moveToPoint(userPoint);
       }

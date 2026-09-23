@@ -27,14 +27,15 @@ class NamazTimingApp extends ConsumerWidget {
         final darkMode = settings.darkMode;
         final fontScale = settings.fontSize.scale;
 
-        final baseLight = AppTheme.light;
-        final baseDark = AppTheme.dark;
-
-        final lightTheme = baseLight.copyWith(
-          textTheme: baseLight.textTheme.apply(fontFamily: settings.fontFamily),
+        final lightTheme = AppTheme.getTheme(
+          isDark: false,
+          fontFamily: settings.fontFamily,
+          fontScale: fontScale,
         );
-        final darkTheme = baseDark.copyWith(
-          textTheme: baseDark.textTheme.apply(fontFamily: settings.fontFamily),
+        final darkTheme = AppTheme.getTheme(
+          isDark: true,
+          fontFamily: settings.fontFamily,
+          fontScale: fontScale,
         );
 
         return MaterialApp(
@@ -48,7 +49,12 @@ class NamazTimingApp extends ConsumerWidget {
               data: MediaQuery.of(context).copyWith(
                 textScaler: TextScaler.linear(fontScale),
               ),
-              child: child ?? const SizedBox.shrink(),
+              child: IconTheme(
+                data: IconTheme.of(context).copyWith(
+                  size: 24.0 * fontScale,
+                ),
+                child: child ?? const SizedBox.shrink(),
+              ),
             );
           },
           home: const MainShell(),

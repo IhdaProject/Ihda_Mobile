@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,10 +11,10 @@ import '../features/feed/presentation/screens/hadith_duas_screen.dart';
 import '../features/location/presentation/screens/region_selection_screen.dart';
 import '../features/qazo/presentation/screens/qazo_screen.dart';
 import '../features/qibla/presentation/screens/qibla_screen.dart';
+import '../features/quran_courses/presentation/screens/quran_courses_screen.dart';
 import '../features/tasbih/presentation/screens/tasbih_screen.dart';
 import '../shared/widgets/design_background.dart';
 import '../shared/widgets/not_ready_screen.dart';
-import 'theme/app_colors.dart';
 import 'theme/app_spacing.dart';
 
 class MoreScreen extends ConsumerWidget {
@@ -20,6 +22,10 @@ class MoreScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final gridRatio = fontScale > 1.1 ? 0.72 : 0.82;
+
+    // Item sequence matches HomeScreen quick actions 100% in exact order!
     final items = <_MoreItem>[
       _MoreItem(
         "Qur'on",
@@ -27,9 +33,19 @@ class MoreScreen extends ConsumerWidget {
         () => _push(context, const NotReadyScreen(title: "Qur'oni Karim", icon: Icons.menu_book_rounded)),
       ),
       _MoreItem(
+        "Kurslar",
+        Icons.school_rounded,
+        () => _push(context, const QuranCoursesScreen()),
+      ),
+      _MoreItem(
         'hadith'.tr(ref),
         Icons.auto_stories_rounded,
         () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.hadith)),
+      ),
+      _MoreItem(
+        'dua'.tr(ref),
+        Icons.volunteer_activism_rounded,
+        () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.dua)),
       ),
       _MoreItem(
         'verse'.tr(ref),
@@ -55,11 +71,6 @@ class MoreScreen extends ConsumerWidget {
         'qazo'.tr(ref),
         Icons.event_repeat_rounded,
         () => _push(context, const QazoScreen()),
-      ),
-      _MoreItem(
-        'dua'.tr(ref),
-        Icons.volunteer_activism_rounded,
-        () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.dua)),
       ),
       _MoreItem(
         'community'.tr(ref),
@@ -95,12 +106,12 @@ class MoreScreen extends ConsumerWidget {
               ),
               Expanded(
                 child: GridView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: AppSpacing.md,
-                    crossAxisSpacing: AppSpacing.md,
-                    childAspectRatio: 0.9,
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: AppSpacing.xs,
+                    crossAxisSpacing: AppSpacing.xs,
+                    childAspectRatio: gridRatio,
                   ),
                   itemCount: items.length,
                   itemBuilder: (context, index) => _MoreTile(item: items[index]),
@@ -146,6 +157,9 @@ class _MoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final boxSize = max(44.0, 44.0 * fontScale);
+
     return InkWell(
       onTap: item.onTap,
       borderRadius: BorderRadius.circular(16),
@@ -153,19 +167,24 @@ class _MoreTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: boxSize,
+            height: boxSize,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(item.icon, color: Theme.of(context).colorScheme.primary),
+            child: Icon(item.icon, color: Theme.of(context).colorScheme.primary, size: 22 * fontScale),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             item.label,
-            style: Theme.of(context).textTheme.labelMedium,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 10,
+            ),
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

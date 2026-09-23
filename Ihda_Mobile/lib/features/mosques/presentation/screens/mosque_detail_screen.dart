@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../map/presentation/screens/map_screen.dart';
 import 'package:yandex_mapkit_lite/yandex_mapkit_lite.dart' as yandex;
 
+import '../../../../app/providers/navigation_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../shared/widgets/design_background.dart';
 import '../../../../shared/widgets/state_widgets.dart';
+import '../../../map/presentation/screens/map_screen.dart';
 import '../../domain/entities/mosque.dart';
 import '../providers/mosque_providers.dart';
-
-import '../../../../shared/widgets/design_background.dart';
 
 class MosqueDetailScreen extends ConsumerWidget {
   final String mosqueId;
@@ -39,13 +39,13 @@ class MosqueDetailScreen extends ConsumerWidget {
   }
 }
 
-class _MosqueDetailBody extends StatelessWidget {
+class _MosqueDetailBody extends ConsumerWidget {
   final Mosque mosque;
 
   const _MosqueDetailBody({required this.mosque});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
@@ -57,7 +57,7 @@ class _MosqueDetailBody extends StatelessWidget {
             ),
             Expanded(
               child: Text(
-                'Musjid',
+                'Masjid',
                 style: Theme.of(context).textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
@@ -164,17 +164,13 @@ class _MosqueDetailBody extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => MapScreen(
-                    targetPoint: yandex.Point(
-                      latitude: mosque.latitude,
-                      longitude: mosque.longitude,
-                    ),
-                    targetName: mosque.name,
-                  ),
-                ),
+              ref.read(selectedMapTargetProvider.notifier).state = SelectedMapTarget(
+                point: yandex.Point(latitude: mosque.latitude, longitude: mosque.longitude),
+                name: mosque.name,
+                mosqueId: mosque.id,
               );
+              ref.read(navigationIndexProvider.notifier).state = 2; // Switch to Map tab in Main Shell
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
             icon: const Icon(Icons.directions_rounded),
             label: const Text("Yo'nalish"),

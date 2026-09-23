@@ -41,6 +41,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   Widget build(BuildContext context) {
     final favoritesAsync = ref.watch(favoriteMosquesProvider);
     final controller = ref.read(mosqueControllerProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: DesignBackground(
@@ -57,16 +58,23 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              // Unified Search Bar
+              // Unified Dark Mode Adaptive Search Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: isDark
+                        ? Theme.of(context).colorScheme.surface
+                        : Colors.white.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.12)
+                          : Colors.transparent,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -74,13 +82,23 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   ),
                   child: TextField(
                     controller: _searchController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14,
+                    ),
+                    cursorColor: Theme.of(context).colorScheme.primary,
                     decoration: InputDecoration(
                       hintText: 'Tanlangan masjidlarni qidirish...',
                       hintStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        color: isDark
+                            ? Colors.white60
+                            : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
                         fontSize: 14,
                       ),
-                      prefixIcon: Icon(Icons.search_rounded, color: Theme.of(context).colorScheme.primary),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear_rounded, size: 20),

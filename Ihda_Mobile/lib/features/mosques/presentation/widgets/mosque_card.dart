@@ -21,10 +21,14 @@ class MosqueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final cardWidth = 180.0 * fontScale;
+    final imageHeight = 90.0 * fontScale;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 180,
+        width: cardWidth,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
@@ -34,11 +38,12 @@ class MosqueCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Stack(
               children: [
                 Container(
-                  height: 100,
+                  height: imageHeight,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
@@ -46,13 +51,17 @@ class MosqueCard extends StatelessWidget {
                   ),
                   child: Center(
                     child: Container(
-                      width: 56,
-                      height: 56,
+                      width: 48 * fontScale,
+                      height: 48 * fontScale,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.mosque_rounded, size: 30, color: Theme.of(context).colorScheme.primary),
+                      child: Icon(
+                        Icons.mosque_rounded,
+                        size: 26 * fontScale,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -66,8 +75,10 @@ class MosqueCard extends StatelessWidget {
                       decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                       child: Icon(
                         mosque.isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
-                        size: 18,
-                        color: mosque.isFavorite ? Theme.of(context).colorScheme.secondary : Theme.of(context).colorScheme.onSurfaceVariant,
+                        size: 18 * fontScale,
+                        color: mosque.isFavorite
+                            ? Theme.of(context).colorScheme.secondary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -75,9 +86,10 @@ class MosqueCard extends StatelessWidget {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     mosque.name,
@@ -88,7 +100,7 @@ class MosqueCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.place_outlined, size: 14, color: Theme.of(context).colorScheme.primary),
+                      Icon(Icons.place_outlined, size: 14 * fontScale, color: Theme.of(context).colorScheme.primary),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -97,6 +109,8 @@ class MosqueCard extends StatelessWidget {
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,
                               ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
