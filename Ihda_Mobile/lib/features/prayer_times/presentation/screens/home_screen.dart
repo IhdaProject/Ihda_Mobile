@@ -17,11 +17,13 @@ import '../../../feed/presentation/screens/hadith_duas_screen.dart';
 import '../../../feed/presentation/screens/notifications_screen.dart';
 import '../../../location/presentation/providers/location_providers.dart';
 import '../../../location/presentation/screens/region_selection_screen.dart';
+import '../../../important_dates/presentation/screens/important_dates_screen.dart';
 import '../../../mosques/presentation/providers/mosque_providers.dart';
 import '../../../mosques/presentation/screens/mosque_detail_screen.dart';
 import '../../../mosques/presentation/widgets/mosque_card.dart';
 import '../../../qazo/presentation/screens/qazo_screen.dart';
 import '../../../qibla/presentation/screens/qibla_screen.dart';
+import '../../../quiz/presentation/screens/quiz_question_screen.dart';
 import '../../../quran_courses/presentation/screens/quran_courses_screen.dart';
 import '../../../tasbih/presentation/screens/tasbih_screen.dart';
 import '../providers/prayer_providers.dart';
@@ -201,14 +203,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           const SizedBox(height: AppSpacing.md),
 
-                          // Default Next Prayer Countdown Card (Always remains in place)
+                          // Default Next Prayer Countdown Card with integrated Location & Calendar Tap
                           countdownAsync.when(
                             loading: () => const SizedBox(height: 180, child: LoadingView()),
                             error: (e, _) => ErrorView(
                               message: e.toString(),
                               onRetry: () => ref.invalidate(todayPrayerDayProvider),
                             ),
-                            data: (countdown) => NextPrayerCard(countdown: countdown),
+                            data: (countdown) => NextPrayerCard(
+                              countdown: countdown,
+                              cityName: locationAsync.valueOrNull?.city ?? 'Toshkent shahri',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const RegionSelectionScreen()),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -216,68 +224,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
 
-                // Page Content Body (Edge-to-Edge horizontal scrolling)
+                // Page Content Body (Edge-to-Edge horizontal scrolling & compact quick actions)
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Region / Location Selection Row
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                          child: InkWell(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const RegionSelectionScreen()),
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.place_outlined, size: 16 * fontScale, color: Theme.of(context).colorScheme.primary),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Joylashuv:',
-                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: locationAsync.when(
-                                      loading: () => const Text('Yuklanmoqda...'),
-                                      error: (_, __) => const Text('Toshkent shahri'),
-                                      data: (loc) => Text(
-                                        loc.city,
-                                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).colorScheme.primary,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                  Icon(Icons.chevron_right_rounded, size: 18 * fontScale, color: Theme.of(context).colorScheme.primary),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
 
-                        // Quick Actions Grid
+                        // Quick Actions Grid (Closer and slightly larger)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final gridRatio = fontScale > 1.1 ? 0.72 : 0.82;
+                              final gridRatio = fontScale > 1.1 ? 0.76 : 0.86;
                               return GridView.count(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 crossAxisCount: 4,
-                                mainAxisSpacing: AppSpacing.xs,
-                                crossAxisSpacing: AppSpacing.xs,
+                                mainAxisSpacing: 6,
+                                crossAxisSpacing: 6,
                                 childAspectRatio: gridRatio,
                                 children: [
                                   _QuickAction(
@@ -299,20 +266,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                   ),
                                   _QuickAction(
+                                    icon: Icons.quiz_rounded,
+                                    label: "Viktorina",
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const QuizQuestionScreen(),
+                                      ),
+                                    ),
+                                  ),
+                                  _QuickAction(
+                                    icon: Icons.event_available_rounded,
+                                    label: "Sanalar",
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const ImportantDatesScreen(),
+                                      ),
+                                    ),
+                                  ),
+                                  _QuickAction(
                                     icon: Icons.auto_stories_rounded,
                                     label: 'hadith'.tr(ref),
                                     onTap: () => Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (_) => const HadithDuasScreen(initialCategory: FeedCategory.hadith),
-                                      ),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.volunteer_activism_rounded,
-                                    label: 'dua'.tr(ref),
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const HadithDuasScreen(initialCategory: FeedCategory.dua),
                                       ),
                                     ),
                                   ),
@@ -328,13 +304,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     label: 'qibla'.tr(ref),
                                     onTap: () => Navigator.of(context).push(
                                       MaterialPageRoute(builder: (_) => const QiblaScreen()),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.calendar_month_rounded,
-                                    label: 'Taqvim',
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(builder: (_) => const RegionSelectionScreen()),
                                     ),
                                   ),
                                   _QuickAction(
@@ -354,7 +323,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                           child: Text('mosques'.tr(ref), style: Theme.of(context).textTheme.titleLarge),
                         ),
-                        const SizedBox(height: AppSpacing.xs),
+                        const SizedBox(height: 4),
 
                         // Edge-To-Edge Horizontal Mosques List
                         SizedBox(
@@ -533,7 +502,7 @@ class _QuickAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final boxSize = max(44.0, 44.0 * fontScale);
+    final boxSize = max(52.0, 52.0 * fontScale);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -545,16 +514,16 @@ class _QuickAction extends StatelessWidget {
             height: boxSize,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22 * fontScale),
+            child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24 * fontScale),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              fontSize: 10,
+              fontSize: 10.5,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -578,6 +547,9 @@ class _IconButtonBadge extends StatelessWidget {
     this.isWhite = false,
     this.size = 44.0,
   });
+
+  @override
+  Widget cardBuilder(BuildContext context) => build(context);
 
   @override
   Widget build(BuildContext context) {

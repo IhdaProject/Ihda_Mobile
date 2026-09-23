@@ -8,9 +8,11 @@ import '../core/localization/localization_provider.dart';
 import '../features/feed/domain/entities/feed_item.dart';
 import '../features/feed/presentation/screens/community_screen.dart';
 import '../features/feed/presentation/screens/hadith_duas_screen.dart';
+import '../features/important_dates/presentation/screens/important_dates_screen.dart';
 import '../features/location/presentation/screens/region_selection_screen.dart';
 import '../features/qazo/presentation/screens/qazo_screen.dart';
 import '../features/qibla/presentation/screens/qibla_screen.dart';
+import '../features/quiz/presentation/screens/quiz_question_screen.dart';
 import '../features/quran_courses/presentation/screens/quran_courses_screen.dart';
 import '../features/tasbih/presentation/screens/tasbih_screen.dart';
 import '../shared/widgets/design_background.dart';
@@ -36,6 +38,16 @@ class MoreScreen extends ConsumerWidget {
         "Kurslar",
         Icons.school_rounded,
         () => _push(context, const QuranCoursesScreen()),
+      ),
+      _MoreItem(
+        "Viktorina",
+        Icons.quiz_rounded,
+        () => _push(context, const QuizQuestionScreen()),
+      ),
+      _MoreItem(
+        "Sanalar",
+        Icons.event_available_rounded,
+        () => _push(context, const ImportantDatesScreen()),
       ),
       _MoreItem(
         'hadith'.tr(ref),
@@ -128,17 +140,11 @@ class MoreScreen extends ConsumerWidget {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
-  static void _snack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
-
   static Future<void> _openLink(BuildContext context, String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
+    try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      _snack(context, "Havolani ochib bo'lmadi");
-    }
+    } catch (_) {}
   }
 }
 
@@ -175,7 +181,7 @@ class _MoreTile extends StatelessWidget {
             ),
             child: Icon(item.icon, color: Theme.of(context).colorScheme.primary, size: 22 * fontScale),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 1),
           Text(
             item.label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(

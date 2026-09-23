@@ -10,8 +10,15 @@ import '../providers/prayer_providers.dart';
 
 class NextPrayerCard extends StatelessWidget {
   final PrayerCountdown countdown;
+  final String cityName;
+  final VoidCallback onTap;
 
-  const NextPrayerCard({super.key, required this.countdown});
+  const NextPrayerCard({
+    super.key,
+    required this.countdown,
+    required this.cityName,
+    required this.onTap,
+  });
 
   IconData _getPrayerIcon(PrayerType? type) {
     switch (type) {
@@ -37,66 +44,111 @@ class NextPrayerCard extends StatelessWidget {
     final next = countdown.next;
     final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(32),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(32),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Location & Calendar Quick Bar inside Card
+            Row(
               children: [
+                Icon(Icons.place_rounded, size: 14 * fontScale, color: Colors.white70),
+                const SizedBox(width: 4),
                 Text(
-                  'Qolgan vaqt:',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-                Text(
-                  next?.type.label ?? 'Kutish...',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 12),
-                if (countdown.remaining != null)
-                  RepaintBoundary(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        AppDateUtils.formatCountdown(countdown.remaining!),
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                              color: Colors.white,
-                              fontSize: 44,
-                              letterSpacing: 1.5,
-                            ),
-                      ),
-                    ),
+                  cityName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Taqvim',
+                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(Icons.chevron_right_rounded, size: 12, color: Colors.white70),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: EdgeInsets.all(16 * fontScale),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              shape: BoxShape.circle,
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Qolgan vaqt:',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                      Text(
+                        next?.type.label ?? 'Kutish...',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (countdown.remaining != null)
+                        RepaintBoundary(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              AppDateUtils.formatCountdown(countdown.remaining!),
+                              style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 40,
+                                    letterSpacing: 1.5,
+                                  ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.all(14 * fontScale),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _getPrayerIcon(next?.type),
+                    color: Colors.white,
+                    size: 38 * fontScale,
+                  ),
+                ),
+              ],
             ),
-            child: Icon(
-              _getPrayerIcon(next?.type),
-              color: Colors.white,
-              size: 40 * fontScale,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

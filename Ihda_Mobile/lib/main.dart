@@ -10,13 +10,21 @@ import 'features/tasbih/presentation/providers/tasbih_providers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = true;
-  await initializeDateFormatting();
-  final sharedPreferences = await SharedPreferences.getInstance();
+
+  try {
+    await initializeDateFormatting();
+  } catch (_) {}
+
+  SharedPreferences? sharedPreferences;
+  try {
+    sharedPreferences = await SharedPreferences.getInstance();
+  } catch (_) {}
 
   runApp(
     ProviderScope(
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        if (sharedPreferences != null)
+          sharedPreferencesProvider.overrideWithValue(sharedPreferences),
       ],
       child: const NamazTimingApp(),
     ),
