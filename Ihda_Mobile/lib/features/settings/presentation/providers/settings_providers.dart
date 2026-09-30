@@ -49,7 +49,13 @@ class SettingsController extends AsyncNotifier<AppSettings> {
 
   Future<void> setDarkMode(bool enabled) async {
     final current = state.valueOrNull ?? const AppSettings();
-    await _persist(current.copyWith(darkMode: enabled));
+    final mode = enabled ? AppThemeMode.dark : AppThemeMode.light;
+    await _persist(current.copyWith(themeMode: mode));
+  }
+
+  Future<void> setThemeMode(AppThemeMode mode) async {
+    final current = state.valueOrNull ?? const AppSettings();
+    await _persist(current.copyWith(themeMode: mode));
   }
 
   Future<void> setDomain(String domain) async {

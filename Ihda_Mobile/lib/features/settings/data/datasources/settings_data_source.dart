@@ -23,6 +23,23 @@ class SettingsDataSource {
         (f) => f.name == fontName,
         orElse: () => AppFontSize.medium,
       );
+
+      final themeModeName = prefs.getString('app_theme_mode');
+      AppThemeMode themeMode;
+      if (themeModeName != null) {
+        themeMode = AppThemeMode.values.firstWhere(
+          (t) => t.name == themeModeName,
+          orElse: () => AppThemeMode.system,
+        );
+      } else {
+        final dark = prefs.getBool(AppConstants.prefsKeyDarkMode);
+        if (dark != null) {
+          themeMode = dark ? AppThemeMode.dark : AppThemeMode.light;
+        } else {
+          themeMode = AppThemeMode.system;
+        }
+      }
+
       return AppSettings(
         calculationMethod: method,
         asrCalculation: asr,
@@ -31,7 +48,7 @@ class SettingsDataSource {
         notificationsEnabled:
             prefs.getBool(AppConstants.prefsKeyNotificationsEnabled) ?? true,
         updatesEnabled: prefs.getBool(AppConstants.prefsKeyUpdatesEnabled) ?? false,
-        darkMode: prefs.getBool(AppConstants.prefsKeyDarkMode) ?? false,
+        themeMode: themeMode,
         mutedPrayers: (prefs.getStringList(AppConstants.prefsKeyPerPrayerNotifications) ?? [])
             .map((name) => PrayerType.values.firstWhere((t) => t.name == name))
             .toSet(),
@@ -53,6 +70,7 @@ class SettingsDataSource {
       await prefs.setString(AppConstants.prefsKeyRegion, settings.region);
       await prefs.setBool(AppConstants.prefsKeyNotificationsEnabled, settings.notificationsEnabled);
       await prefs.setBool(AppConstants.prefsKeyUpdatesEnabled, settings.updatesEnabled);
+      await prefs.setString('app_theme_mode', settings.themeMode.name);
       await prefs.setBool(AppConstants.prefsKeyDarkMode, settings.darkMode);
       await prefs.setString(AppConstants.prefsKeyDomain, settings.domain);
       await prefs.setString('font_size', settings.fontSize.name);

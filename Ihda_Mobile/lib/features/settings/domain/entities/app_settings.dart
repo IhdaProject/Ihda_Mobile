@@ -43,6 +43,21 @@ extension AppFontSizeX on AppFontSize {
   }
 }
 
+enum AppThemeMode { system, light, dark }
+
+extension AppThemeModeX on AppThemeMode {
+  String get label {
+    switch (this) {
+      case AppThemeMode.system:
+        return 'Tizim bo\'yicha (Auto)';
+      case AppThemeMode.light:
+        return 'Kunduzgi (Light)';
+      case AppThemeMode.dark:
+        return 'Tungi (Dark)';
+    }
+  }
+}
+
 class AppSettings {
   final CalculationMethod calculationMethod;
   final AsrCalculation asrCalculation;
@@ -50,11 +65,13 @@ class AppSettings {
   final String region;
   final bool notificationsEnabled;
   final bool updatesEnabled;
-  final bool darkMode;
+  final AppThemeMode themeMode;
   final Set<PrayerType> mutedPrayers;
   final String domain;
   final AppFontSize fontSize;
   final String fontFamily;
+
+  bool get darkMode => themeMode == AppThemeMode.dark;
 
   const AppSettings({
     this.calculationMethod = CalculationMethod.mwl,
@@ -63,7 +80,7 @@ class AppSettings {
     this.region = 'Toshkent shahri',
     this.notificationsEnabled = true,
     this.updatesEnabled = false,
-    this.darkMode = false,
+    this.themeMode = AppThemeMode.system,
     this.mutedPrayers = const {},
     this.domain = 'ihda.uz',
     this.fontSize = AppFontSize.medium,
@@ -77,12 +94,17 @@ class AppSettings {
     String? region,
     bool? notificationsEnabled,
     bool? updatesEnabled,
+    AppThemeMode? themeMode,
     bool? darkMode,
     Set<PrayerType>? mutedPrayers,
     String? domain,
     AppFontSize? fontSize,
     String? fontFamily,
   }) {
+    final resolvedThemeMode = darkMode != null
+        ? (darkMode ? AppThemeMode.dark : AppThemeMode.light)
+        : (themeMode ?? this.themeMode);
+
     return AppSettings(
       calculationMethod: calculationMethod ?? this.calculationMethod,
       asrCalculation: asrCalculation ?? this.asrCalculation,
@@ -90,7 +112,7 @@ class AppSettings {
       region: region ?? this.region,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       updatesEnabled: updatesEnabled ?? this.updatesEnabled,
-      darkMode: darkMode ?? this.darkMode,
+      themeMode: resolvedThemeMode,
       mutedPrayers: mutedPrayers ?? this.mutedPrayers,
       domain: domain ?? this.domain,
       fontSize: fontSize ?? this.fontSize,

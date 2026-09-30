@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/design_background.dart';
+import '../../../../shared/widgets/blurred_bottom_sheet.dart';
 import '../../../../shared/widgets/state_widgets.dart';
 import '../../../location/presentation/screens/region_selection_screen.dart';
 import '../../../prayer_times/domain/entities/prayer.dart';
@@ -50,7 +51,6 @@ class SettingsScreen extends ConsumerWidget {
                     onRetry: () => ref.invalidate(settingsControllerProvider),
                   ),
                   data: (settings) {
-                    final controller = ref.read(settingsControllerProvider.notifier);
                     return ListView(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       children: [
@@ -78,11 +78,11 @@ class SettingsScreen extends ConsumerWidget {
 
                         const SizedBox(height: AppSpacing.lg),
                         _SectionHeader('Ilova va shrift sozlamalari'),
-                        _SwitchRow(
-                          icon: Icons.dark_mode_outlined,
-                          label: 'Tungi rejim (Dark Mode)',
-                          value: settings.darkMode,
-                          onChanged: controller.setDarkMode,
+                        _SettingRow(
+                          icon: Icons.brightness_auto_rounded,
+                          label: 'Ilova rejimi (Theme Mode)',
+                          trailingText: settings.themeMode.label,
+                          onTap: () => _showThemeModePicker(context, ref, settings),
                         ),
                         _SettingRow(
                           icon: Icons.format_size_rounded,
@@ -133,6 +133,37 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  static void _showThemeModePicker(BuildContext context, WidgetRef ref, AppSettings settings) {
+    showBlurredBottomSheet(
+      context: context,
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Text('Ilova rejimini tanlang', style: Theme.of(context).textTheme.titleLarge),
+            ),
+            for (final mode in AppThemeMode.values)
+              RadioListTile<AppThemeMode>(
+                value: mode,
+                groupValue: settings.themeMode,
+                activeColor: Theme.of(context).colorScheme.primary,
+                title: Text(mode.label),
+                onChanged: (v) {
+                  if (v != null) {
+                    ref.read(settingsControllerProvider.notifier).setThemeMode(v);
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+  }
+
   static void _showFontSizePicker(BuildContext context, WidgetRef ref, AppSettings settings) {
     showModalBottomSheet(
       context: context,
@@ -166,46 +197,64 @@ class SettingsScreen extends ConsumerWidget {
 
   static void _showFontFamilyPicker(BuildContext context, WidgetRef ref, AppSettings settings) {
     final fonts = [
-      ('Plus Jakarta Sans', 'Plus Jakarta Sans (Zamonaviy)'),
-      ('Poppins', 'Poppins (Yumshoq / Dumaloq)'),
-      ('Inter', 'Inter (Aniq va Bop)'),
-      ('Nunito', 'Nunito (Nafis)'),
+      ('Plus Jakarta Sans', 'Plus Jakarta Sans (Zamonaviy geometrik)'),
+      ('Poppins', 'Poppins (Yumshoq va ommabop)'),
+      ('Inter', 'Inter (Minimalist va professional)'),
+      ('Montserrat', 'Montserrat (Elegant va urban)'),
+      ('Outfit', 'Outfit (Yangi avlod dizayn)'),
+      ('Nunito', 'Nunito (Nafis va do\'stona)'),
+      ('Quicksand', 'Quicksand (Dumaloq va yengil)'),
+      ('Lexend', 'Lexend (O\'qish uchun maxsus)'),
+      ('DM Sans', 'DM Sans (Geometrik va toza)'),
       ('Roboto', 'Roboto (Standart)'),
     ];
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Text('Zamonaviy shrift turini tanlang', style: Theme.of(context).textTheme.titleLarge),
-            ),
-            for (final (fontKey, fontLabel) in fonts)
-              RadioListTile<String>(
-                value: fontKey,
-                groupValue: settings.fontFamily,
-                activeColor: Theme.of(context).colorScheme.primary,
-                title: Text(
-                  fontLabel,
-                  style: GoogleFonts.getFont(
-                    fontKey,
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                ),
-                onChanged: (v) {
-                  if (v != null) {
-                    ref.read(settingsControllerProvider.notifier).setFontFamily(v);
-                  }
-                  Navigator.of(context).pop();
-                },
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) => Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Text('Zamonaviy va turlicha shriftlarni tanlang', style: Theme.of(context).textTheme.titleLarge),
               ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    for (final (fontKey, fontLabel) in fonts)
+                      RadioListTile<String>(
+                        value: fontKey,
+                        groupValue: settings.fontFamily,
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        title: Text(
+                          fontLabel,
+                          style: GoogleFonts.getFont(
+                            fontKey,
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ),
+                        onChanged: (v) {
+                          if (v != null) {
+                            ref.read(settingsControllerProvider.notifier).setFontFamily(v);
+                          }
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ),
         ),
       ),
     );
@@ -410,36 +459,6 @@ class _SettingRow extends StatelessWidget {
         ],
       ),
       onTap: onTap,
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SwitchRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
-    return SwitchListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      secondary: Icon(
-        icon,
-        color: Theme.of(context).colorScheme.primary,
-        size: 22 * fontScale,
-      ),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
-      value: value,
-      onChanged: onChanged,
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 
@@ -113,37 +115,36 @@ class HeroBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          width: double.infinity,
-          height: 320,
-          decoration: const BoxDecoration(
-            gradient: AppColors.heroGradient,
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
-          ),
-        ),
-        Positioned(
-          top: -50,
-          right: -50,
-          child: Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              shape: BoxShape.circle,
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: AppColors.heroGradient,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -50,
+            right: -50,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-        ),
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _HeroWavePainter(
-              color: Colors.white.withOpacity(0.05),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _HeroWavePainter(
+                color: Colors.white.withOpacity(0.05),
+              ),
             ),
           ),
-        ),
-        child,
-      ],
+          child,
+        ],
+      ),
     );
   }
 }

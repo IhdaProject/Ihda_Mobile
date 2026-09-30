@@ -5,6 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/design_background.dart';
+import '../../../../shared/widgets/blurred_bottom_sheet.dart';
 import '../../data/datasources/mock_quran_courses_data_source.dart';
 import '../../domain/entities/quran_course_models.dart';
 import '../providers/quran_courses_providers.dart';
@@ -369,24 +370,49 @@ class _FilterChipDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return PopupMenuButton<String>(
-      onSelected: onSelected,
-      color: isDark ? Theme.of(context).colorScheme.surface : Colors.white,
-      itemBuilder: (context) => [
-        for (final item in items)
-          PopupMenuItem<String>(
-            value: item,
-            child: Text(
-              item,
-              style: TextStyle(
-                fontWeight: item == label ? FontWeight.bold : FontWeight.normal,
-                color: item == label
-                    ? Theme.of(context).colorScheme.primary
-                    : (isDark ? Colors.white : Colors.black87),
+    return GestureDetector(
+      onTap: () {
+        showBlurredBottomSheet(
+          context: context,
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            children: [
+              Text(
+                'Tanlang',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center,
               ),
-            ),
+              const SizedBox(height: 12),
+              for (final item in items)
+                ListTile(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  tileColor: item == label
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
+                      : Colors.transparent,
+                  title: Text(
+                    item,
+                    style: TextStyle(
+                      fontWeight: item == label ? FontWeight.bold : FontWeight.normal,
+                      color: item == label
+                          ? Theme.of(context).colorScheme.primary
+                          : (isDark ? Colors.white : Colors.black87),
+                    ),
+                  ),
+                  trailing: item == label
+                      ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
+                      : null,
+                  onTap: () {
+                    onSelected(item);
+                    Navigator.pop(context);
+                  },
+                ),
+            ],
           ),
-      ],
+        );
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(

@@ -2,198 +2,296 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
+import '../core/constants/app_services.dart';
 import '../core/localization/localization_provider.dart';
-import '../features/feed/domain/entities/feed_item.dart';
-import '../features/feed/presentation/screens/community_screen.dart';
-import '../features/feed/presentation/screens/hadith_duas_screen.dart';
-import '../features/important_dates/presentation/screens/important_dates_screen.dart';
-import '../features/location/presentation/screens/region_selection_screen.dart';
-import '../features/qazo/presentation/screens/qazo_screen.dart';
-import '../features/qibla/presentation/screens/qibla_screen.dart';
-import '../features/quiz/presentation/screens/quiz_question_screen.dart';
-import '../features/quran_courses/presentation/screens/quran_courses_screen.dart';
-import '../features/tasbih/presentation/screens/tasbih_screen.dart';
 import '../shared/widgets/design_background.dart';
-import '../shared/widgets/not_ready_screen.dart';
+import 'providers/services_provider.dart';
 import 'theme/app_spacing.dart';
 
-class MoreScreen extends ConsumerWidget {
+class MoreScreen extends ConsumerStatefulWidget {
   const MoreScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final gridRatio = fontScale > 1.1 ? 0.72 : 0.82;
+  ConsumerState<MoreScreen> createState() => _MoreScreenState();
+}
 
-    // Item sequence matches HomeScreen quick actions 100% in exact order!
-    final items = <_MoreItem>[
-      _MoreItem(
-        "Qur'on",
-        Icons.menu_book_rounded,
-        () => _push(context, const NotReadyScreen(title: "Qur'oni Karim", icon: Icons.menu_book_rounded)),
-      ),
-      _MoreItem(
-        "Kurslar",
-        Icons.school_rounded,
-        () => _push(context, const QuranCoursesScreen()),
-      ),
-      _MoreItem(
-        "Viktorina",
-        Icons.quiz_rounded,
-        () => _push(context, const QuizQuestionScreen()),
-      ),
-      _MoreItem(
-        "Sanalar",
-        Icons.event_available_rounded,
-        () => _push(context, const ImportantDatesScreen()),
-      ),
-      _MoreItem(
-        'hadith'.tr(ref),
-        Icons.auto_stories_rounded,
-        () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.hadith)),
-      ),
-      _MoreItem(
-        'dua'.tr(ref),
-        Icons.volunteer_activism_rounded,
-        () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.dua)),
-      ),
-      _MoreItem(
-        'verse'.tr(ref),
-        Icons.format_quote_rounded,
-        () => _push(context, const HadithDuasScreen(initialCategory: FeedCategory.verse)),
-      ),
-      _MoreItem(
-        'tasbih'.tr(ref),
-        Icons.touch_app_rounded,
-        () => _push(context, const TasbihScreen()),
-      ),
-      _MoreItem(
-        'qibla'.tr(ref),
-        Icons.explore_rounded,
-        () => _push(context, const QiblaScreen()),
-      ),
-      _MoreItem(
-        'Taqvim',
-        Icons.calendar_month_rounded,
-        () => _push(context, const RegionSelectionScreen()),
-      ),
-      _MoreItem(
-        'qazo'.tr(ref),
-        Icons.event_repeat_rounded,
-        () => _push(context, const QazoScreen()),
-      ),
-      _MoreItem(
-        'community'.tr(ref),
-        Icons.groups_rounded,
-        () => _push(context, const CommunityScreen()),
-      ),
-      _MoreItem(
-        'Islom.uz',
-        Icons.public_rounded,
-        () => _openLink(context, 'https://islom.uz'),
-      ),
-      _MoreItem(
-        'Radio',
-        Icons.radio_rounded,
-        () => _push(context, const NotReadyScreen(title: 'Islomiy Radio', icon: Icons.radio_rounded)),
-      ),
-    ];
+class _MoreScreenState extends ConsumerState<MoreScreen> {
+  bool _isEditMode = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final servicesState = ref.watch(servicesControllerProvider);
+    final servicesNotifier = ref.read(servicesControllerProvider.notifier);
+    final orderedServices = servicesNotifier.getOrderedServices();
+
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final crossAxisCount = servicesState.columnCount; // 3 or 4
+    final gridRatio = crossAxisCount == 3
+        ? (fontScale > 1.1 ? 0.95 : 1.05)
+        : (fontScale > 1.1 ? 0.75 : 0.85);
 
     return Scaffold(
       body: DesignBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Text(
-                  'more'.tr(ref),
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w800,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            if (_isEditMode) {
+              setState(() => _isEditMode = false);
+            }
+          },
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Header & Column Selector (No edit button as requested)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.sm),
+                  key: const ValueKey('more_header'),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'more'.tr(ref),
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
                       ),
-                ),
-              ),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: AppSpacing.xs,
-                    crossAxisSpacing: AppSpacing.xs,
-                    childAspectRatio: gridRatio,
+                      // Column selector (3 or 4)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            _ColumnCountButton(
+                              count: 3,
+                              isSelected: crossAxisCount == 3,
+                              onTap: () => servicesNotifier.setColumnCount(3),
+                            ),
+                            _ColumnCountButton(
+                              count: 4,
+                              isSelected: crossAxisCount == 4,
+                              onTap: () => servicesNotifier.setColumnCount(4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) => _MoreTile(item: items[index]),
                 ),
-              ),
-            ],
+
+                if (_isEditMode)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.touch_app_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Tahrir rejimi: Ilovani bosib turib suring. Saqlash uchun bo\'sh joyga bosing.',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Grid Content Area with Drag and Drop Support
+                Expanded(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: AppSpacing.md,
+                      crossAxisSpacing: AppSpacing.md,
+                      childAspectRatio: gridRatio,
+                    ),
+                    itemCount: orderedServices.length,
+                    itemBuilder: (context, index) {
+                      final item = orderedServices[index];
+                      final tile = _ServiceTile(
+                        item: item,
+                        isEditMode: _isEditMode,
+                      );
+
+                      if (!_isEditMode) {
+                        return GestureDetector(
+                          key: ValueKey(item.id),
+                          onTap: () => item.onTap(context, ref),
+                          onLongPress: () => setState(() => _isEditMode = true),
+                          child: tile,
+                        );
+                      }
+
+                      // In Edit Mode: Draggable & DragTarget for Samsung/iPhone style arrangement
+                      return LongPressDraggable<String>(
+                        data: item.id,
+                        feedback: Material(
+                          color: Colors.transparent,
+                          child: Opacity(
+                            opacity: 0.85,
+                            child: SizedBox(
+                              width: 90,
+                              height: 90,
+                              child: tile,
+                            ),
+                          ),
+                        ),
+                        childWhenDragging: Opacity(
+                          opacity: 0.3,
+                          child: tile,
+                        ),
+                        child: DragTarget<String>(
+                          onWillAccept: (incomingId) => incomingId != item.id,
+                          onAccept: (incomingId) {
+                            final oldIndex = orderedServices.indexWhere((s) => s.id == incomingId);
+                            final newIndex = index;
+                            if (oldIndex != -1) {
+                              servicesNotifier.reorder(oldIndex, newIndex);
+                            }
+                          },
+                          builder: (context, candidateData, rejectedData) {
+                            return GestureDetector(
+                              onTap: () {}, // Prevent background tap when tapping tile in edit mode
+                              onLongPress: () {},
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: candidateData.isNotEmpty
+                                      ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
+                                      : null,
+                                ),
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Positioned.fill(child: tile),
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.2),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(Icons.open_with_rounded, size: 12, color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
-  static void _push(BuildContext context, Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
-  }
-
-  static Future<void> _openLink(BuildContext context, String url) async {
-    final uri = Uri.parse(url);
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {}
-  }
 }
 
-class _MoreItem {
-  final String label;
-  final IconData icon;
+class _ColumnCountButton extends StatelessWidget {
+  final int count;
+  final bool isSelected;
   final VoidCallback onTap;
 
-  const _MoreItem(this.label, this.icon, this.onTap);
-}
-
-class _MoreTile extends StatelessWidget {
-  final _MoreItem item;
-
-  const _MoreTile({required this.item});
+  const _ColumnCountButton({required this.count, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final boxSize = max(44.0, 44.0 * fontScale);
-
-    return InkWell(
-      onTap: item.onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: boxSize,
-            height: boxSize,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(item.icon, color: Theme.of(context).colorScheme.primary, size: 22 * fontScale),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          '$count',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: isSelected ? Colors.white : Theme.of(context).colorScheme.primary,
           ),
-          const SizedBox(height: 1),
-          Text(
-            item.label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 10,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _ServiceTile extends ConsumerWidget {
+  final ServiceItem item;
+  final bool isEditMode;
+
+  const _ServiceTile({required this.item, required this.isEditMode});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final boxSize = max(58.0, 58.0 * fontScale);
+    final iconSize = 28.0 * fontScale;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: boxSize,
+              height: boxSize,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(isEditMode ? 0.2 : 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: isEditMode
+                    ? Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.6), width: 1.5)
+                    : null,
+              ),
+              child: Icon(
+                item.icon,
+                color: Theme.of(context).colorScheme.primary,
+                size: iconSize,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          item.getLabel(ref),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 11.5,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

@@ -24,7 +24,6 @@ class NamazTimingApp extends ConsumerWidget {
         home: Scaffold(body: Center(child: Text(e.toString()))),
       ),
       data: (settings) {
-        final darkMode = settings.darkMode;
         final fontScale = settings.fontSize.scale;
 
         final lightTheme = AppTheme.getTheme(
@@ -38,12 +37,18 @@ class NamazTimingApp extends ConsumerWidget {
           fontScale: fontScale,
         );
 
+        final themeMode = switch (settings.themeMode) {
+          AppThemeMode.system => ThemeMode.system,
+          AppThemeMode.light => ThemeMode.light,
+          AppThemeMode.dark => ThemeMode.dark,
+        };
+
         return MaterialApp(
           title: 'Ihda Mobile',
           debugShowCheckedModeBanner: false,
           theme: lightTheme,
           darkTheme: darkTheme,
-          themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
+          themeMode: themeMode,
           builder: (context, child) {
             return MediaQuery(
               data: MediaQuery.of(context).copyWith(

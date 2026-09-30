@@ -1,7 +1,12 @@
+import 'dart:io';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
@@ -188,12 +193,97 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
     return days[date.weekday - 1];
   }
 
+  final GlobalKey _posterKey = GlobalKey();
+
+  Future<void> _captureAndSharePoster(String region, List<dynamic> days) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Rasm generatsiya qilinmoqda...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      final contextObj = _posterKey.currentContext;
+      if (contextObj == null) {
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        showAppToast(context, 'Rasm tayyorlanmadi, qayta urinib ko\'ring', icon: Icons.error_outline_rounded);
+        return;
+      }
+
+      final boundary = contextObj.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        showAppToast(context, 'Render xatoligi yuz berdi', icon: Icons.error_outline_rounded);
+        return;
+      }
+
+      // Safe pixelRatio 1.5 to prevent memory overflow / crashes on mobile devices
+      final image = await boundary.toImage(pixelRatio: 1.5);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        throw Exception('Image byte data is null');
+      }
+      final pngBytes = byteData.buffer.asUint8List();
+
+      final outputDir = await getTemporaryDirectory();
+      final file = File('${outputDir.path}/namoz_taqvimi_${_currentMonth.year}_${_currentMonth.month}.png');
+      await file.writeAsBytes(pngBytes);
+
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop(); // pop loading dialog
+      }
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context); // pop bottom sheet
+      }
+
+      // Use device native sharing API (share_plus -> Android Intent.ACTION_SEND)
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '$region - ${_formatUzbekMonth(_currentMonth)} Namoz Vaqtlari Taqvimi\nIhda Mobile orqali yaratildi.',
+      );
+
+      showAppToast(context, 'Taqvim rasmi muvaffaqiyatli generatsiya qilindi va ulashildi!', icon: Icons.share_rounded);
+    } catch (e) {
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      showAppToast(context, 'Xatolik yuz berdi: $e', icon: Icons.error_outline_rounded);
+    }
+  }
+
   void _shareCalendarImage(String region) {
+    final days = ref.read(prayerCalendarProvider(_currentMonth)).valueOrNull ?? [];
+    if (days.isEmpty) {
+      showAppToast(context, 'Taqvim ma\'lumotlari hali yuklanmadi', icon: Icons.warning_rounded);
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -212,50 +302,35 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Taqvim Rasmini Saqlash & Ulashish',
+              'Taqvim Rasmini Generatsiya Qilish',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              '$region - ${_formatUzbekMonth(_currentMonth)} namoz vaqtlari taqvimi',
+              '$region - ${_formatUzbekMonth(_currentMonth)}',
               style: const TextStyle(color: Colors.grey, fontSize: 13),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
+            const SizedBox(height: AppSpacing.md),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Center(
+                  child: RepaintBoundary(
+                    key: _posterKey,
+                    child: _PrayerPosterWidget(
+                      region: region,
+                      month: _currentMonth,
+                      days: days,
+                    ),
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Icon(Icons.image_rounded, size: 48, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$region Taqvim Poster',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text('Yuqori sifatli PNG rasm ko\'rinishida tayyorlandi', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.md),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  showAppToast(context, 'Taqvim rasmi muvaffaqiyatli saqlandi va ulashildi', icon: Icons.share_rounded);
-                },
+                onPressed: () => _captureAndSharePoster(region, days),
                 icon: const Icon(Icons.share_rounded),
                 label: const Text('Rasm sifatida saqlash va ulashish'),
               ),
@@ -790,5 +865,146 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
         ),
       ),
     );
+  }
+}
+
+class _PrayerPosterWidget extends StatelessWidget {
+  final String region;
+  final DateTime month;
+  final List<dynamic> days;
+
+  const _PrayerPosterWidget({
+    required this.region,
+    required this.month,
+    required this.days,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF1B5E20);
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: primaryColor.withOpacity(0.3), width: 1.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.mosque_rounded, color: primaryColor, size: 24),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'IHSDA MOBILE • NAMOZ TAQVIMI',
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.1),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      region,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  _formatUzbekMonthStatic(month),
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              children: [
+                Expanded(flex: 3, child: Text('Sana', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor))),
+                Expanded(flex: 3, child: Text('Bomdod', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text('Quyosh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text('Peshshin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text('Asr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text('Shom', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text('Xufton', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          for (final day in days) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      '${day.date.day}-${_formatShortWeekdayStatic(day.date)}',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black87),
+                    ),
+                  ),
+                  for (final prayer in day.prayers)
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        '${prayer.time.hour.toString().padLeft(2, '0')}:${prayer.time.minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(fontSize: 10, color: Colors.black87),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (day != days.last)
+              Divider(height: 1, color: Colors.grey.withOpacity(0.15)),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.verified_rounded, size: 12, color: primaryColor.withOpacity(0.7)),
+              const SizedBox(width: 4),
+              const Text(
+                'Ihda Mobile rasmiy taqvimi',
+                style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatUzbekMonthStatic(DateTime date) {
+    const months = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
+  static String _formatShortWeekdayStatic(DateTime date) {
+    const days = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
+    return days[date.weekday - 1];
   }
 }

@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers/navigation_provider.dart';
+import '../../../../app/providers/services_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/constants/app_services.dart';
 import '../../../../core/localization/localization_provider.dart';
 import '../../../../shared/widgets/design_background.dart';
 import '../../../../shared/widgets/not_ready_screen.dart';
@@ -227,103 +229,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // Page Content Body (Edge-to-Edge horizontal scrolling & compact quick actions)
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 4),
-
-                        // Quick Actions Grid (Closer and slightly larger)
+                        // Quick Actions Grid (Responsive & pulling from shared services)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final gridRatio = fontScale > 1.1 ? 0.76 : 0.86;
-                              return GridView.count(
+                              final servicesState = ref.watch(servicesControllerProvider);
+                              final allServices = ref.read(servicesControllerProvider.notifier).getOrderedServices();
+                              final crossAxisCount = servicesState.columnCount; // 3 or 4
+                              final maxSlots = (crossAxisCount * 2) - 1;
+                              final displayedServices = allServices.take(maxSlots).toList();
+                              final showMoreTile = maxSlots < allServices.length;
+                              final totalTilesCount = displayedServices.length + (showMoreTile ? 1 : 0);
+
+                              final gridRatio = fontScale > 1.1 ? 0.72 : 0.82;
+
+                              return GridView.builder(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                crossAxisCount: 4,
-                                mainAxisSpacing: 6,
-                                crossAxisSpacing: 6,
-                                childAspectRatio: gridRatio,
-                                children: [
-                                  _QuickAction(
-                                    icon: Icons.menu_book_rounded,
-                                    label: "Qur'on",
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const NotReadyScreen(title: "Qur'oni Karim", icon: Icons.menu_book_rounded),
-                                      ),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.school_rounded,
-                                    label: "Kurslar",
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const QuranCoursesScreen(),
-                                      ),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.quiz_rounded,
-                                    label: "Viktorina",
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const QuizQuestionScreen(),
-                                      ),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.event_available_rounded,
-                                    label: "Sanalar",
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const ImportantDatesScreen(),
-                                      ),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.auto_stories_rounded,
-                                    label: 'hadith'.tr(ref),
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const HadithDuasScreen(initialCategory: FeedCategory.hadith),
-                                      ),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.touch_app_rounded,
-                                    label: 'tasbih'.tr(ref),
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(builder: (_) => const TasbihScreen()),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.explore_rounded,
-                                    label: 'qibla'.tr(ref),
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(builder: (_) => const QiblaScreen()),
-                                    ),
-                                  ),
-                                  _QuickAction(
-                                    icon: Icons.grid_view_rounded,
-                                    label: 'more'.tr(ref),
-                                    onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
-                                  ),
-                                ],
+                                padding: EdgeInsets.zero,
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  mainAxisSpacing: AppSpacing.sm,
+                                  crossAxisSpacing: AppSpacing.sm,
+                                  childAspectRatio: gridRatio,
+                                ),
+                                itemCount: totalTilesCount,
+                                itemBuilder: (context, index) {
+                                  if (showMoreTile && index == totalTilesCount - 1) {
+                                    return _QuickActionTile(
+                                      icon: Icons.grid_view_rounded,
+                                      label: 'more'.tr(ref),
+                                      onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
+                                    );
+                                  }
+                                  final service = displayedServices[index];
+                                  return _ServiceTile(service: service);
+                                },
                               );
                             },
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.sm),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Mosques Section Header
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                           child: Text('mosques'.tr(ref), style: Theme.of(context).textTheme.titleLarge),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSpacing.xs),
 
                         // Edge-To-Edge Horizontal Mosques List
                         SizedBox(
@@ -492,20 +450,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+class _ServiceTile extends ConsumerWidget {
+  final ServiceItem service;
 
-  const _QuickAction({required this.icon, required this.label, required this.onTap});
+  const _ServiceTile({required this.service});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final boxSize = max(52.0, 52.0 * fontScale);
+    final boxSize = max(58.0, 58.0 * fontScale);
+    final iconSize = 28.0 * fontScale;
+
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      onTap: () => service.onTap(context, ref),
+      borderRadius: BorderRadius.circular(18),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -513,17 +471,70 @@ class _QuickAction extends StatelessWidget {
             width: boxSize,
             height: boxSize,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(14),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24 * fontScale),
+            child: Icon(
+              service.icon,
+              color: Theme.of(context).colorScheme.primary,
+              size: iconSize,
+            ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
+          Text(
+            service.getLabel(ref),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 11.5,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickActionTile({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final fontScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final boxSize = max(58.0, 58.0 * fontScale);
+    final iconSize = 28.0 * fontScale;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: boxSize,
+            height: boxSize,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icon,
+              color: Theme.of(context).colorScheme.primary,
+              size: iconSize,
+            ),
+          ),
+          const SizedBox(height: 6),
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              fontSize: 10.5,
+              fontSize: 11.5,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
