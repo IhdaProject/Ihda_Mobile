@@ -1,23 +1,11 @@
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "uz.ihda.mobile"
     compileSdk = 36
-
-    // Force all subprojects to use this compileSdkVersion
-    subprojects {
-        afterEvaluate {
-            if (extensions.findByName("android") != null) {
-                extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
-                    compileSdk = 36
-                }
-            }
-        }
-    }
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -34,7 +22,7 @@ android {
 
     defaultConfig {
         applicationId = "uz.ihda.mobile"
-        minSdk = flutter.minSdkVersion // Android 5.0 Lollipop support for older devices
+        minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName

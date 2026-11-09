@@ -19,6 +19,8 @@ mock data out of the box.
 flutter pub get
 flutter run
 ```
+flutter run -d emulator-5554
+flutter build apk --release
 
 If you haven't already, run `flutter create .` once in the project root to
 generate the `android/`, `ios/`, `linux/`, `web/`, `windows/`, `macos/`

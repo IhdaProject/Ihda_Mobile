@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/design_background.dart';
-import '../../../location/presentation/screens/region_selection_screen.dart'; // for showAppToast
+import '../../../../shared/widgets/app_toast.dart';
 import '../../domain/entities/quiz_question.dart';
 import 'quiz_result_screen.dart';
 

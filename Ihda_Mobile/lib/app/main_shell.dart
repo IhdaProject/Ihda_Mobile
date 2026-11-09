@@ -27,8 +27,9 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Keep notification scheduler alive
+    // Keep offline notification scheduler and in-app realtime ticker alive
     ref.watch(notificationSchedulerProvider);
+    ref.watch(inAppPrayerTickerProvider);
 
     final index = ref.watch(navigationIndexProvider);
 

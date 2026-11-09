@@ -9,6 +9,7 @@ import 'package:yandex_mapkit_lite/yandex_mapkit_lite.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../shared/widgets/app_toast.dart';
 import '../../../../shared/widgets/design_background.dart';
 import '../../../location/presentation/screens/region_selection_screen.dart';
 import '../../../mosques/domain/entities/mosque.dart';

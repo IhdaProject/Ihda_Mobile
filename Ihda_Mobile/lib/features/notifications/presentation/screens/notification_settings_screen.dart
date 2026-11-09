@@ -1,101 +1,131 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../shared/widgets/app_toast.dart';
 import '../../../../shared/widgets/design_background.dart';
-import '../../../location/presentation/screens/region_selection_screen.dart';
 import '../../domain/entities/notification_settings.dart';
 import '../providers/notification_providers.dart';
 
-class NotificationSettingsScreen extends ConsumerWidget {
+class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
 
-  static const List<String> _sampleDeviceAudios = [
-    'Azon_Makkah.mp3',
-    'Azon_Madina.mp3',
-    'Subh_Melody.wav',
-    'Mening_Audio_Faylim.mp3',
-    'Gentle_Alarm.mp3',
-    'Custom_Ringtone_1.mp3',
-  ];
+  @override
+  ConsumerState<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+}
 
-  static void _showAudioPickerSheet(
-    BuildContext context,
-    WidgetRef ref,
-    PrayerNotificationConfig prayer,
-    bool isMainPrayer,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                '${prayer.name} uchun audio/tovush tanlang',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              const Text('Telefon xotirasidagi mavjud audio fayllar ro\'yxati:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: AppSpacing.md),
-              for (final audio in _sampleDeviceAudios)
-                ListTile(
-                  leading: Icon(Icons.audiotrack_rounded, color: Theme.of(context).colorScheme.primary),
-                  title: Text(audio, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                  trailing: prayer.customAudioName == audio
-                      ? Icon(Icons.check_circle_rounded, color: Theme.of(context).colorScheme.primary)
-                      : null,
-                  onTap: () {
-                    final notifier = ref.read(detailedNotificationSettingsProvider.notifier);
-                    if (isMainPrayer) {
-                      notifier.setMainPrayerSound(
-                        prayer.id,
-                        NotificationSoundType.customDevice,
-                        customAudioName: audio,
-                      );
-                    } else {
-                      notifier.setNaflPrayerSound(
-                        prayer.id,
-                        NotificationSoundType.customDevice,
-                        customAudioName: audio,
-                      );
-                    }
-                    Navigator.pop(context);
-                    showAppToast(
-                      context,
-                      '${prayer.name} uchun audio tanlandi: $audio',
-                      icon: Icons.audiotrack_rounded,
-                    );
-                  },
-                ),
-            ],
-          ),
-        ),
-      ),
+class _NotificationSettingsScreenState extends ConsumerState<NotificationSettingsScreen> {
+  bool _hasPermission = false;
+  bool _checkingPermission = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final ds = ref.read(notificationDataSourceProvider);
+    final granted = await ds.hasPermissions();
+    if (mounted) {
+      setState(() {
+        _hasPermission = granted;
+        _checkingPermission = false;
+      });
+    }
+  }
+
+  Future<void> _requestPermission() async {
+    final ds = ref.read(notificationDataSourceProvider);
+    final granted = await ds.requestPermissions();
+    if (mounted) {
+      setState(() {
+        _hasPermission = granted;
+      });
+      if (granted) {
+        showAppToast(
+          context,
+          'Bildirishnomalarga ruxsat berildi! ✅',
+          icon: Icons.check_circle_rounded,
+        );
+      } else {
+        showAppToast(
+          context,
+          'Sozlamalar bo\'limidan bildirishnomalarga ruxsat bering',
+          icon: Icons.warning_amber_rounded,
+        );
+      }
+    }
+  }
+
+  Future<void> _pickCustomAudioFile(PrayerNotificationConfig prayer, bool isMainPrayer) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.audio,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
+        final fileName = result.files.single.name;
+
+        final notifier = ref.read(detailedNotificationSettingsProvider.notifier);
+        if (isMainPrayer) {
+          notifier.setMainPrayerSound(
+            prayer.id,
+            NotificationSoundType.customDevice,
+            customAudioName: filePath,
+          );
+        } else {
+          notifier.setNaflPrayerSound(
+            prayer.id,
+            NotificationSoundType.customDevice,
+            customAudioName: filePath,
+          );
+        }
+
+        if (mounted) {
+          showAppToast(
+            context,
+            'Audio fayl tanlandi: $fileName',
+            icon: Icons.audiotrack_rounded,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showAppToast(
+          context,
+          'Fayl tanlashda xatolik yuz berdi',
+          icon: Icons.error_outline_rounded,
+        );
+      }
+    }
+  }
+
+  Future<void> _testSound(PrayerNotificationConfig prayer) async {
+    final ds = ref.read(notificationDataSourceProvider);
+    await ds.showImmediateTestNotification(
+      title: '${prayer.name} namozi vaqti bo\'ldi (Sinov)',
+      body: 'Hozir ${prayer.name} namozining bildirishnoma va tovush sinovi.',
+      soundType: prayer.sound,
+      customAudioPath: prayer.customAudioName,
     );
+
+    if (mounted) {
+      showAppToast(
+        context,
+        'Sinov bildirishnomasi yuborildi! 🔔',
+        icon: Icons.notifications_active_rounded,
+      );
+    }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final settings = ref.watch(detailedNotificationSettingsProvider);
     final notifier = ref.read(detailedNotificationSettingsProvider.notifier);
 
@@ -104,6 +134,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         child: SafeArea(
           child: Column(
             children: [
+              // Header
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
@@ -123,10 +154,77 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   children: [
+                    // System Permission Status Card
+                    Card(
+                      elevation: 0,
+                      color: _hasPermission
+                          ? Colors.green.withOpacity(0.08)
+                          : Colors.orange.withOpacity(0.12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        side: BorderSide(
+                          color: _hasPermission
+                              ? Colors.green.withOpacity(0.3)
+                              : Colors.orange.withOpacity(0.4),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _hasPermission
+                                  ? Icons.verified_user_rounded
+                                  : Icons.notification_important_rounded,
+                              color: _hasPermission ? Colors.green : Colors.orange,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _hasPermission
+                                        ? 'Tizim bildirishnomalariga ruxsat berilgan'
+                                        : 'Bildirishnomalarga ruxsat berilmagan',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _hasPermission
+                                        ? 'Namoz vaqtida avtomatik ovozli eslatmalar chiqadi'
+                                        : 'Azon va eslatmalar chiqishi uchun ruxsat bering',
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!_hasPermission && !_checkingPermission)
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _requestPermission,
+                                child: const Text('Ruxsat berish', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
                     // Global Switch Card
                     Card(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
@@ -153,13 +251,14 @@ class NotificationSettingsScreen extends ConsumerWidget {
                           onToggle: (v) => notifier.toggleMainPrayer(prayer.id, v),
                           onSoundTypePicked: (sound) {
                             if (sound == NotificationSoundType.customDevice) {
-                              _showAudioPickerSheet(context, ref, prayer, true);
+                              _pickCustomAudioFile(prayer, true);
                             } else {
                               notifier.setMainPrayerSound(prayer.id, sound);
                             }
                           },
-                          onCustomAudioTap: () => _showAudioPickerSheet(context, ref, prayer, true),
+                          onCustomAudioTap: () => _pickCustomAudioFile(prayer, true),
                           onOffsetChanged: (offset) => notifier.setMainPrayerOffset(prayer.id, offset),
+                          onTestSound: () => _testSound(prayer),
                         ),
 
                       const SizedBox(height: AppSpacing.lg),
@@ -174,13 +273,14 @@ class NotificationSettingsScreen extends ConsumerWidget {
                           onToggle: (v) => notifier.toggleNaflPrayer(prayer.id, v),
                           onSoundTypePicked: (sound) {
                             if (sound == NotificationSoundType.customDevice) {
-                              _showAudioPickerSheet(context, ref, prayer, false);
+                              _pickCustomAudioFile(prayer, false);
                             } else {
                               notifier.setNaflPrayerSound(prayer.id, sound);
                             }
                           },
-                          onCustomAudioTap: () => _showAudioPickerSheet(context, ref, prayer, false),
+                          onCustomAudioTap: () => _pickCustomAudioFile(prayer, false),
                           onOffsetChanged: (offset) => notifier.setNaflPrayerOffset(prayer.id, offset),
+                          onTestSound: () => _testSound(prayer),
                         ),
 
                       const SizedBox(height: AppSpacing.lg),
@@ -249,6 +349,7 @@ class _PrayerNotificationCard extends StatelessWidget {
   final ValueChanged<NotificationSoundType> onSoundTypePicked;
   final VoidCallback onCustomAudioTap;
   final ValueChanged<int> onOffsetChanged;
+  final VoidCallback onTestSound;
 
   const _PrayerNotificationCard({
     required this.prayer,
@@ -257,7 +358,14 @@ class _PrayerNotificationCard extends StatelessWidget {
     required this.onSoundTypePicked,
     required this.onCustomAudioTap,
     required this.onOffsetChanged,
+    required this.onTestSound,
   });
+
+  String _getFileName(String? path) {
+    if (path == null || path.isEmpty) return 'Fayl tanlanmagan';
+    final parts = path.split('/');
+    return parts.last;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -289,6 +397,13 @@ class _PrayerNotificationCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
+                if (prayer.enabled)
+                  IconButton(
+                    icon: const Icon(Icons.volume_up_rounded, size: 20),
+                    tooltip: 'Tovushni sinash',
+                    color: Theme.of(context).colorScheme.primary,
+                    onPressed: onTestSound,
+                  ),
                 Switch(
                   value: prayer.enabled,
                   onChanged: onToggle,
@@ -324,11 +439,12 @@ class _PrayerNotificationCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           ChoiceChip(
+                            avatar: const Icon(Icons.folder_open_rounded, size: 14),
                             label: Text(
                               prayer.sound == NotificationSoundType.customDevice &&
                                       prayer.customAudioName != null &&
                                       prayer.customAudioName!.isNotEmpty
-                                  ? prayer.customAudioName!
+                                  ? _getFileName(prayer.customAudioName)
                                   : NotificationSoundType.customDevice.label,
                               style: const TextStyle(fontSize: 11),
                             ),
@@ -348,12 +464,9 @@ class _PrayerNotificationCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Vaqtni sozlash:',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  const Text(
+                    'Vaqtni sozlash:',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                   Row(
                     mainAxisSize: MainAxisSize.min,

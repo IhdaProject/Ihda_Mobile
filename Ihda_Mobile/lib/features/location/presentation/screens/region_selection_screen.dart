@@ -8,51 +8,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_toast.dart';
+export '../../../../shared/widgets/app_toast.dart';
 import '../../../../shared/widgets/design_background.dart';
 import '../../../../shared/widgets/state_widgets.dart';
 import '../../../prayer_times/presentation/providers/prayer_providers.dart';
 import '../../../prayer_times/presentation/widgets/prayer_time_tile.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
-
-/// Floating Light Toast Notification Helper
-void showAppToast(BuildContext context, String message, {IconData icon = Icons.check_circle_rounded}) {
-  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.only(bottom: 28, left: 32, right: 32),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      backgroundColor: Colors.white,
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: AppColors.primary.withOpacity(0.2)),
-      ),
-      content: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: AppColors.primary, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ],
-      ),
-      duration: const Duration(seconds: 2),
-    ),
-  );
-}
+import '../widgets/prayer_poster_widget.dart';
+import '../widgets/region_search_bar.dart';
 
 class RegionSelectionScreen extends ConsumerStatefulWidget {
   const RegionSelectionScreen({super.key});
@@ -143,49 +110,21 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
 
   String _formatUzbekMonth(DateTime date) {
     const months = [
-      'Yanvar',
-      'Fevral',
-      'Mart',
-      'Aprel',
-      'May',
-      'Iyun',
-      'Iyul',
-      'Avgust',
-      'Sentabr',
-      'Oktyabr',
-      'Noyabr',
-      'Dekabr'
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentabr', 'Oktyabr', 'Noyabr', 'Dekabr'
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
 
   String _formatUzbekFullDate(DateTime date) {
     const months = [
-      'Yanvar',
-      'Fevral',
-      'Mart',
-      'Aprel',
-      'May',
-      'Iyun',
-      'Iyul',
-      'Avgust',
-      'Sentabr',
-      'Oktyabr',
-      'Noyabr',
-      'Dekabr'
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentabr', 'Oktyabr', 'Noyabr', 'Dekabr'
     ];
     const weekdays = [
-      'Dushanba',
-      'Seshanba',
-      'Chorshanba',
-      'Payshanba',
-      'Juma',
-      'Shanba',
-      'Yakshanba'
+      'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'
     ];
-    final monthName = months[date.month - 1];
-    final weekdayName = weekdays[date.weekday - 1];
-    return '${date.day}-$monthName, $weekdayName';
+    return '${date.day}-${months[date.month - 1]}, ${weekdays[date.weekday - 1]}';
   }
 
   String _formatShortWeekday(DateTime date) {
@@ -237,7 +176,6 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
         return;
       }
 
-      // Safe pixelRatio 1.5 to prevent memory overflow / crashes on mobile devices
       final image = await boundary.toImage(pixelRatio: 1.5);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) {
@@ -250,13 +188,12 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
       await file.writeAsBytes(pngBytes);
 
       if (Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).pop(); // pop loading dialog
+        Navigator.of(context, rootNavigator: true).pop();
       }
       if (Navigator.canPop(context)) {
-        Navigator.pop(context); // pop bottom sheet
+        Navigator.pop(context);
       }
 
-      // Use device native sharing API (share_plus -> Android Intent.ACTION_SEND)
       await Share.shareXFiles(
         [XFile(file.path)],
         text: '$region - ${_formatUzbekMonth(_currentMonth)} Namoz Vaqtlari Taqvimi\nIhda Mobile orqali yaratildi.',
@@ -317,7 +254,7 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                 child: Center(
                   child: RepaintBoundary(
                     key: _posterKey,
-                    child: _PrayerPosterWidget(
+                    child: PrayerPosterWidget(
                       region: region,
                       month: _currentMonth,
                       days: days,
@@ -379,67 +316,22 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                 ),
               ),
 
-              // Page Content Body with Full Width Edge-to-Edge Scroll Support
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   children: [
-                    // Unified Dark Mode Adaptive Search Input
+                    // Search Bar
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Theme.of(context).colorScheme.surface
-                              : Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                          border: Border.all(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white.withOpacity(0.12)
-                                : Colors.transparent,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(
-                                  Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Theme.of(context).colorScheme.onSurface,
-                            fontSize: 14,
-                          ),
-                          cursorColor: Theme.of(context).colorScheme.primary,
-                          decoration: InputDecoration(
-                            hintText: 'Hududlarni qidirish (Toshkent, Samarqand...)',
-                            hintStyle: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white60
-                                  : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
-                              fontSize: 14,
-                            ),
-                            prefixIcon: Icon(Icons.search_rounded, color: Theme.of(context).colorScheme.primary),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, size: 20),
-                                    onPressed: () => _searchController.clear(),
-                                  )
-                                : null,
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
-                        ),
+                      child: RegionSearchBar(
+                        controller: _searchController,
+                        searchQuery: _searchQuery,
+                        onClear: () => _searchController.clear(),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
 
-                    // Auto-complete suggestions list when user types
+                    // Suggestions
                     if (_searchQuery.isNotEmpty) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -469,7 +361,7 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                       ),
                       const SizedBox(height: AppSpacing.md),
                     ] else ...[
-                      // Selected Region Summary Card with compact GPS Button
+                      // Selected Region Badge & GPS
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                         child: Container(
@@ -517,11 +409,7 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                                       const SizedBox(width: 4),
                                       const Text(
                                         'GPS',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                                       ),
                                     ],
                                   ),
@@ -534,7 +422,7 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                       const SizedBox(height: AppSpacing.md),
                     ],
 
-                    // Calendar Header & Controls
+                    // Calendar Controls
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                       child: Row(
@@ -593,13 +481,11 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                           );
                         }
 
-                        // Auto scroll to today on load
                         if (_currentMonth.month == today.month && _currentMonth.year == today.year) {
                           _scrollToToday(days.length);
                         }
 
                         if (_showFullMonthTable) {
-                          // Clean Monthly Table View with Sticky Header & Share Image
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                             child: Card(
@@ -608,7 +494,6 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                                 padding: const EdgeInsets.all(12),
                                 child: Column(
                                   children: [
-                                    // Share / Save Image Toolbar
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
@@ -620,13 +505,11 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                                       ],
                                     ),
                                     const Divider(height: 8),
-                                    // Sticky Header + Scrollable Rows
                                     SingleChildScrollView(
                                       scrollDirection: Axis.horizontal,
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          // Pinned Sticky Table Header
                                           Container(
                                             color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
                                             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
@@ -642,7 +525,6 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                                               ],
                                             ),
                                           ),
-                                          // Scrollable Days List
                                           SizedBox(
                                             height: 380,
                                             child: SingleChildScrollView(
@@ -696,7 +578,6 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                           );
                         }
 
-                        // Default View: Horizontal Days Selector Strip (Full Width Edge-To-Edge!)
                         final selectedDayData = days.firstWhere(
                           (d) => d.date.year == _selectedDate.year &&
                               d.date.month == _selectedDate.month &&
@@ -708,7 +589,6 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Horizontal Days Selector Strip (Spans 100% Full Screen Width Edge-to-Edge)
                             SizedBox(
                               height: max(76.0, 76.0 * fontScale),
                               child: ListView.separated(
@@ -789,7 +669,6 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                             ),
                             const SizedBox(height: AppSpacing.md),
 
-                            // Selected Day's Prayer Schedule Card
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                               child: AppCard(
@@ -865,146 +744,5 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
         ),
       ),
     );
-  }
-}
-
-class _PrayerPosterWidget extends StatelessWidget {
-  final String region;
-  final DateTime month;
-  final List<dynamic> days;
-
-  const _PrayerPosterWidget({
-    required this.region,
-    required this.month,
-    required this.days,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF1B5E20);
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryColor.withOpacity(0.3), width: 1.5),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.mosque_rounded, color: primaryColor, size: 24),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'IHSDA MOBILE • NAMOZ TAQVIMI',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.1),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      region,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: primaryColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  _formatUzbekMonthStatic(month),
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-            decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Row(
-              children: [
-                Expanded(flex: 3, child: Text('Sana', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor))),
-                Expanded(flex: 3, child: Text('Bomdod', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
-                Expanded(flex: 3, child: Text('Quyosh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
-                Expanded(flex: 3, child: Text('Peshshin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
-                Expanded(flex: 3, child: Text('Asr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
-                Expanded(flex: 3, child: Text('Shom', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
-                Expanded(flex: 3, child: Text('Xufton', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: primaryColor), textAlign: TextAlign.center)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          for (final day in days) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      '${day.date.day}-${_formatShortWeekdayStatic(day.date)}',
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black87),
-                    ),
-                  ),
-                  for (final prayer in day.prayers)
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        '${prayer.time.hour.toString().padLeft(2, '0')}:${prayer.time.minute.toString().padLeft(2, '0')}',
-                        style: const TextStyle(fontSize: 10, color: Colors.black87),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (day != days.last)
-              Divider(height: 1, color: Colors.grey.withOpacity(0.15)),
-          ],
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.verified_rounded, size: 12, color: primaryColor.withOpacity(0.7)),
-              const SizedBox(width: 4),
-              const Text(
-                'Ihda Mobile rasmiy taqvimi',
-                style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _formatUzbekMonthStatic(DateTime date) {
-    const months = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
-    return '${months[date.month - 1]} ${date.year}';
-  }
-
-  static String _formatShortWeekdayStatic(DateTime date) {
-    const days = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
-    return days[date.weekday - 1];
   }
 }
