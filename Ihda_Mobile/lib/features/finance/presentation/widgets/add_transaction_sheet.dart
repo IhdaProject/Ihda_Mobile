@@ -1,22 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../domain/models/finance_model.dart';
 import '../providers/finance_provider.dart';
 import 'finance_input_decoration.dart';
+import 'thousands_formatter.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
-  const AddTransactionSheet({super.key});
+  final TransactionItem? initialItem;
+  final bool defaultIsExpense;
+
+  const AddTransactionSheet({
+    super.key,
+    this.initialItem,
+    this.defaultIsExpense = true,
+  });
 
   @override
   ConsumerState<AddTransactionSheet> createState() => _AddTransactionSheetState();
 }
 
 class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
-  final _titleController = TextEditingController();
-  final _amountController = TextEditingController();
-  bool _isExpense = true;
-  ExpenseCategory _selectedCategory = ExpenseCategory.food;
+  late TextEditingController _titleController;
+  late TextEditingController _amountController;
+  late bool _isExpense;
+  late ExpenseCategory _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.initialItem;
+    if (item != null) {
+      final formatter = NumberFormat('#,###', 'ru_RU');
+      final formattedAmount = formatter.format(item.amount).replaceAll('\u00A0', ' ');
+      _titleController = TextEditingController(text: item.title);
+      _amountController = TextEditingController(text: formattedAmount);
+      _isExpense = item.isExpense;
+      _selectedCategory = item.category;
+    } else {
+      _titleController = TextEditingController();
+      _amountController = TextEditingController();
+      _isExpense = widget.defaultIsExpense;
+      _selectedCategory = _isExpense ? ExpenseCategory.food : ExpenseCategory.salary;
+    }
+  }
 
   @override
   void dispose() {
@@ -25,9 +53,46 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     super.dispose();
   }
 
+  void _submitForm() {
+    FocusScope.of(context).unfocus();
+
+    final title = _titleController.text.trim();
+    final cleanAmountStr = _amountController.text.replaceAll(' ', '');
+    final amount = double.tryParse(cleanAmountStr) ?? 0.0;
+
+    if (title.isEmpty || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Iltimos, nomini va summani to\'g\'ri kiriting')),
+      );
+      return;
+    }
+
+    final notifier = ref.read(financeProvider.notifier);
+    if (widget.initialItem != null) {
+      final updated = widget.initialItem!.copyWith(
+        title: title,
+        amount: amount,
+        category: _selectedCategory,
+        isExpense: _isExpense,
+      );
+      notifier.updateTransaction(updated);
+    } else {
+      notifier.addTransaction(
+        title: title,
+        amount: amount,
+        category: _selectedCategory,
+        isExpense: _isExpense,
+      );
+    }
+
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(financeProvider);
     final primaryColor = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final availableCategories = _isExpense
         ? ExpenseCategory.values.where((c) => c != ExpenseCategory.salary && c != ExpenseCategory.freelance).toList()
@@ -37,99 +102,194 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _selectedCategory = availableCategories.first;
     }
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Tranzaksiya Qo\'shish', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ToggleButtons(
-                isSelected: [_isExpense, !_isExpense],
-                onPressed: (index) {
-                  setState(() {
-                    _isExpense = index == 0;
-                    _selectedCategory = _isExpense ? ExpenseCategory.food : ExpenseCategory.salary;
-                  });
-                },
-                borderRadius: BorderRadius.circular(12),
-                constraints: const BoxConstraints(minHeight: 32, minWidth: 80),
-                children: const [
-                  Text('Xarajat 🔴', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text('Daromad 🟢', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
+    final isEditing = widget.initialItem != null;
+
+    final sheetTitle = _isExpense
+        ? (isEditing ? 'Xarajatni Tahrirlash 🔴' : 'Xarajat Qo\'shish 🔴')
+        : (isEditing ? 'Daromadni Tahrirlash 🟢' : 'Daromad Qo\'shish 🟢');
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Sheet Header Title
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: (_isExpense ? Colors.redAccent : Colors.green).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isExpense ? Icons.remove_circle_outline_rounded : Icons.add_circle_outline_rounded,
+                    color: _isExpense ? Colors.redAccent : Colors.green,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    sheetTitle,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: _isExpense ? Colors.redAccent : Colors.green,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Title Input
+            TextField(
+              controller: _titleController,
+              textInputAction: TextInputAction.next,
+              decoration: buildModernInputDecoration(
+                context: context,
+                labelText: _isExpense ? 'Xarajat nomi' : 'Daromad manbai',
+                hintText: _isExpense ? 'Supermarket, Taksi, Ijara...' : 'Oylik maosh, Frilans...',
+                prefixIcon: Icons.edit_note_rounded,
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _titleController,
-            decoration: buildModernInputDecoration(
-              context: context,
-              labelText: 'Nomi (masalan: Supermarket)',
-              prefixIcon: Icons.edit_note_rounded,
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amountController,
-            keyboardType: TextInputType.number,
-            decoration: buildModernInputDecoration(
-              context: context,
-              labelText: 'Summasi (UZS)',
-              hintText: '450 000',
-              prefixIcon: Icons.attach_money_rounded,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('Kategoriya', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: availableCategories.map((cat) {
-              final isSelected = _selectedCategory == cat;
-              return FilterChip(
-                avatar: Icon(cat.icon, size: 16, color: isSelected ? primaryColor : cat.color),
-                label: Text(cat.label, style: const TextStyle(fontSize: 12)),
-                selected: isSelected,
-                selectedColor: primaryColor.withOpacity(0.18),
-                checkmarkColor: primaryColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                onSelected: (selected) {
-                  if (selected) setState(() => _selectedCategory = cat);
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            const SizedBox(height: 8),
+
+            // Autocomplete suggestions chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: state.titleSuggestions.take(6).map((suggestion) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ActionChip(
+                      label: Text(suggestion, style: const TextStyle(fontSize: 11)),
+                      backgroundColor: isDark
+                          ? primaryColor.withOpacity(0.12)
+                          : primaryColor.withOpacity(0.08),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      onPressed: () {
+                        setState(() {
+                          _titleController.text = suggestion;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
               ),
-              onPressed: () {
-                final title = _titleController.text.trim();
-                final amount = double.tryParse(_amountController.text) ?? 0.0;
-                if (title.isNotEmpty && amount > 0) {
-                  ref.read(financeProvider.notifier).addTransaction(
-                        title: title,
-                        amount: amount,
-                        category: _selectedCategory,
-                        isExpense: _isExpense,
-                      );
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Saqlash', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+
+            // Amount Input with 3-digit spaces
+            TextField(
+              controller: _amountController,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [ThousandsFormatter()],
+              onSubmitted: (_) => _submitForm(),
+              decoration: buildModernInputDecoration(
+                context: context,
+                labelText: 'Summasi (UZS)',
+                hintText: '1 500 000',
+                prefixIcon: Icons.attach_money_rounded,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Category choice chips
+            const Text(
+              'Kategoriya:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: availableCategories.map((cat) {
+                final isSelected = _selectedCategory == cat;
+
+                return InkWell(
+                  onTap: () {
+                    setState(() => _selectedCategory = cat);
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? cat.color
+                          : (isDark ? Colors.white.withOpacity(0.08) : Colors.grey.withOpacity(0.1)),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected ? cat.color : Colors.grey.withOpacity(0.3),
+                        width: isSelected ? 2 : 1,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: cat.color.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          cat.icon,
+                          size: 16,
+                          color: isSelected ? Colors.white : cat.color,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          cat.label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark ? Colors.white : Colors.black87),
+                          ),
+                        ),
+                        if (isSelected) ...[
+                          const SizedBox(width: 6),
+                          const Icon(Icons.check_circle_rounded, size: 14, color: Colors.white),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 22),
+
+            // Submit Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isExpense ? Colors.redAccent : Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 4,
+                ),
+                onPressed: _submitForm,
+                icon: Icon(isEditing ? Icons.check_rounded : Icons.save_rounded),
+                label: Text(
+                  isEditing ? 'O\'zgartirishni Saqlash' : 'Saqlash',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

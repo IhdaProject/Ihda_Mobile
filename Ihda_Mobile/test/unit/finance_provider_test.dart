@@ -15,14 +15,15 @@ void main() {
       container.dispose();
     });
 
-    test('Initial finance state has default values', () {
+    test('Initial finance state calculates totals from transactions', () {
       final state = container.read(financeProvider);
-      expect(state.monthlyIncome, 10000000.0);
-      expect(state.monthlyBudgetLimit, 7000000.0);
       expect(state.transactions.isNotEmpty, true);
+      expect(state.totalIncome > 0, true);
+      expect(state.totalExpense > 0, true);
+      expect(state.currentBalance, state.totalIncome - state.totalExpense);
     });
 
-    test('Adding transaction updates balance and transaction list', () {
+    test('Adding transaction updates totals and pending sync flag', () {
       final notifier = container.read(financeProvider.notifier);
       final initialCount = container.read(financeProvider).transactions.length;
 
@@ -37,14 +38,23 @@ void main() {
       expect(newState.transactions.length, initialCount + 1);
       expect(newState.transactions.first.title, 'Test Expense');
       expect(newState.transactions.first.amount, 50000.0);
+      expect(newState.hasPendingSync, true);
     });
 
-    test('Updating income modifies monthly income state', () {
+    test('Server sync resets pending sync status', () async {
       final notifier = container.read(financeProvider.notifier);
-      notifier.updateMonthlyIncome(15000000.0);
+      notifier.addTransaction(
+        title: 'New Income',
+        amount: 1000000.0,
+        category: ExpenseCategory.salary,
+        isExpense: false,
+      );
 
-      final newState = container.read(financeProvider);
-      expect(newState.monthlyIncome, 15000000.0);
+      expect(container.read(financeProvider).hasPendingSync, true);
+
+      final success = await notifier.syncWithServer();
+      expect(success, true);
+      expect(container.read(financeProvider).hasPendingSync, false);
     });
   });
 }

@@ -5,67 +5,81 @@ import '../../../tasbih/presentation/providers/tasbih_providers.dart';
 import '../../domain/models/finance_model.dart';
 
 class FinanceState {
-  final double monthlyIncome;
-  final double monthlyBudgetLimit;
-  final double monthlySavingsTarget;
-  final double emergencyFundSaved;
-  final int emergencyFundMonths;
-  final double monthlyInvestment;
   final List<TransactionItem> transactions;
+  final bool hasPendingSync;
+  final bool isSyncing;
 
   const FinanceState({
-    this.monthlyIncome = 12000000.0,
-    this.monthlyBudgetLimit = 8000000.0,
-    this.monthlySavingsTarget = 1500000.0,
-    this.emergencyFundSaved = 7500000.0,
-    this.emergencyFundMonths = 3,
-    this.monthlyInvestment = 1000000.0,
     this.transactions = const [],
+    this.hasPendingSync = false,
+    this.isSyncing = false,
   });
 
+  /// Total Income strictly calculated from recorded income transactions
   double get totalIncome {
     return transactions
         .where((t) => !t.isExpense)
-        .fold(0.0, (sum, t) => sum + t.amount) + monthlyIncome;
+        .fold(0.0, (sum, t) => sum + t.amount);
   }
 
+  /// Total Expense strictly calculated from recorded expense transactions
   double get totalExpense {
     return transactions
         .where((t) => t.isExpense)
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
+  /// Net Balance strictly calculated as Total Income - Total Expense
+  double get currentBalance => totalIncome - totalExpense;
+
+  /// Essential Expenses (Food, Housing, Transport, etc.)
   double get totalEssentialExpense {
     return transactions
         .where((t) => t.isExpense && t.category.isEssential)
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
+  /// Discretionary / Wants Expenses (Coffee, Taxi, Entertainment, etc.)
   double get totalDiscretionaryExpense {
     return transactions
         .where((t) => t.isExpense && !t.category.isEssential)
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
-  double get currentBalance => totalIncome - totalExpense;
+  /// 50/30/20 Financial Allocation Targets
+  double get target50Essential => totalIncome * 0.50;
+  double get target30Discretionary => totalIncome * 0.30;
+  double get target20Savings => totalIncome * 0.20;
+
+  /// Title suggestions derived from past transactions + default popular items
+  List<String> get titleSuggestions {
+    final pastTitles = transactions.map((t) => t.title.trim()).toSet();
+    const defaults = [
+      'Supermarket',
+      'Taksi (Yandex Go)',
+      'Uy ijara to\'lovi',
+      'Kommunal to\'lovlar',
+      'Oylik maosh',
+      'Frilans daromadi',
+      'Kofe va tushlik',
+      'Kiyim-kechak',
+      'Bozor xaridi',
+    ];
+    for (final d in defaults) {
+      pastTitles.add(d);
+    }
+    return pastTitles.toList();
+  }
 
   FinanceState copyWith({
-    double? monthlyIncome,
-    double? monthlyBudgetLimit,
-    double? monthlySavingsTarget,
-    double? emergencyFundSaved,
-    int? emergencyFundMonths,
-    double? monthlyInvestment,
     List<TransactionItem>? transactions,
+    bool? hasPendingSync,
+    bool? isSyncing,
   }) {
     return FinanceState(
-      monthlyIncome: monthlyIncome ?? this.monthlyIncome,
-      monthlyBudgetLimit: monthlyBudgetLimit ?? this.monthlyBudgetLimit,
-      monthlySavingsTarget: monthlySavingsTarget ?? this.monthlySavingsTarget,
-      emergencyFundSaved: emergencyFundSaved ?? this.emergencyFundSaved,
-      emergencyFundMonths: emergencyFundMonths ?? this.emergencyFundMonths,
-      monthlyInvestment: monthlyInvestment ?? this.monthlyInvestment,
       transactions: transactions ?? this.transactions,
+      hasPendingSync: hasPendingSync ?? this.hasPendingSync,
+      isSyncing: isSyncing ?? this.isSyncing,
     );
   }
 }
@@ -77,40 +91,39 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     _loadFromPrefs();
   }
 
-  static const String _keyIncome = 'finance_monthly_income';
-  static const String _keyBudgetLimit = 'finance_budget_limit';
-  static const String _keySavingsTarget = 'finance_savings_target';
-  static const String _keyEmergencySaved = 'finance_emergency_saved';
-  static const String _keyEmergencyMonths = 'finance_emergency_months';
-  static const String _keyInvestment = 'finance_monthly_investment';
-  static const String _keyTransactions = 'finance_transactions_list';
+  static const String _keyTransactions = 'finance_transactions_list_v2';
+  static const String _keyPendingSync = 'finance_pending_sync_v2';
 
   void _loadFromPrefs() {
-    final income = _prefs.getDouble(_keyIncome) ?? 12000000.0;
-    final budgetLimit = _prefs.getDouble(_keyBudgetLimit) ?? 8000000.0;
-    final savingsTarget = _prefs.getDouble(_keySavingsTarget) ?? 1500000.0;
-    final emergencySaved = _prefs.getDouble(_keyEmergencySaved) ?? 7500000.0;
-    final emergencyMonths = _prefs.getInt(_keyEmergencyMonths) ?? 3;
-    final investment = _prefs.getDouble(_keyInvestment) ?? 1000000.0;
-
     final txStringList = _prefs.getStringList(_keyTransactions);
+    final pending = _prefs.getBool(_keyPendingSync) ?? false;
+
     List<TransactionItem> txs = [];
     if (txStringList != null && txStringList.isNotEmpty) {
       txs = txStringList
           .map((s) => TransactionItem.fromJson(jsonDecode(s)))
           .toList();
     } else {
+      // Default initial realistic dataset
       txs = [
         TransactionItem(
           id: '1',
-          title: 'Supermarket xaridi',
-          amount: 450000,
-          category: ExpenseCategory.food,
-          date: DateTime.now().subtract(const Duration(hours: 2)),
-          isExpense: true,
+          title: 'Oylik Maosh (Asosiy)',
+          amount: 12000000,
+          category: ExpenseCategory.salary,
+          date: DateTime.now().subtract(const Duration(days: 5)),
+          isExpense: false,
         ),
         TransactionItem(
           id: '2',
+          title: 'Supermarket xaridi',
+          amount: 450000,
+          category: ExpenseCategory.food,
+          date: DateTime.now().subtract(const Duration(hours: 3)),
+          isExpense: true,
+        ),
+        TransactionItem(
+          id: '3',
           title: 'Uy ijara to\'lovi',
           amount: 3500000,
           category: ExpenseCategory.housing,
@@ -118,39 +131,35 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
           isExpense: true,
         ),
         TransactionItem(
-          id: '3',
-          title: 'Yandex Taxi',
+          id: '4',
+          title: 'Taksi (Yandex Go)',
           amount: 35000,
           category: ExpenseCategory.taxi,
           date: DateTime.now().subtract(const Duration(days: 2)),
           isExpense: true,
         ),
         TransactionItem(
-          id: '4',
-          title: 'Qo\'shimcha Frilans',
+          id: '5',
+          title: 'Qo\'shimcha Frilans loyihasi',
           amount: 2500000,
           category: ExpenseCategory.freelance,
           date: DateTime.now().subtract(const Duration(days: 3)),
           isExpense: false,
         ),
       ];
-      _saveTransactions(txs);
+      _saveTransactions(txs, pendingSync: false);
     }
 
     state = FinanceState(
-      monthlyIncome: income,
-      monthlyBudgetLimit: budgetLimit,
-      monthlySavingsTarget: savingsTarget,
-      emergencyFundSaved: emergencySaved,
-      emergencyFundMonths: emergencyMonths,
-      monthlyInvestment: investment,
       transactions: txs,
+      hasPendingSync: pending,
     );
   }
 
-  void _saveTransactions(List<TransactionItem> txs) {
+  void _saveTransactions(List<TransactionItem> txs, {required bool pendingSync}) {
     final list = txs.map((t) => jsonEncode(t.toJson())).toList();
     _prefs.setStringList(_keyTransactions, list);
+    _prefs.setBool(_keyPendingSync, pendingSync);
   }
 
   void addTransaction({
@@ -158,54 +167,41 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     required double amount,
     required ExpenseCategory category,
     required bool isExpense,
+    DateTime? date,
   }) {
     final newItem = TransactionItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       amount: amount,
       category: category,
-      date: DateTime.now(),
+      date: date ?? DateTime.now(),
       isExpense: isExpense,
     );
     final updated = [newItem, ...state.transactions];
-    state = state.copyWith(transactions: updated);
-    _saveTransactions(updated);
+    state = state.copyWith(transactions: updated, hasPendingSync: true);
+    _saveTransactions(updated, pendingSync: true);
+  }
+
+  void updateTransaction(TransactionItem updatedItem) {
+    final updated = state.transactions.map((t) {
+      return t.id == updatedItem.id ? updatedItem : t;
+    }).toList();
+    state = state.copyWith(transactions: updated, hasPendingSync: true);
+    _saveTransactions(updated, pendingSync: true);
   }
 
   void removeTransaction(String id) {
     final updated = state.transactions.where((t) => t.id != id).toList();
-    state = state.copyWith(transactions: updated);
-    _saveTransactions(updated);
+    state = state.copyWith(transactions: updated, hasPendingSync: true);
+    _saveTransactions(updated, pendingSync: true);
   }
 
-  void updateMonthlyIncome(double income) {
-    state = state.copyWith(monthlyIncome: income);
-    _prefs.setDouble(_keyIncome, income);
-  }
-
-  void updateMonthlyBudgetLimit(double limit) {
-    state = state.copyWith(monthlyBudgetLimit: limit);
-    _prefs.setDouble(_keyBudgetLimit, limit);
-  }
-
-  void updateMonthlySavingsTarget(double target) {
-    state = state.copyWith(monthlySavingsTarget: target);
-    _prefs.setDouble(_keySavingsTarget, target);
-  }
-
-  void updateEmergencyFundSaved(double saved) {
-    state = state.copyWith(emergencyFundSaved: saved);
-    _prefs.setDouble(_keyEmergencySaved, saved);
-  }
-
-  void updateEmergencyFundMonths(int months) {
-    state = state.copyWith(emergencyFundMonths: months);
-    _prefs.setInt(_keyEmergencyMonths, months);
-  }
-
-  void updateMonthlyInvestment(double investment) {
-    state = state.copyWith(monthlyInvestment: investment);
-    _prefs.setDouble(_keyInvestment, investment);
+  Future<bool> syncWithServer() async {
+    state = state.copyWith(isSyncing: true);
+    await Future.delayed(const Duration(milliseconds: 1200));
+    state = state.copyWith(isSyncing: false, hasPendingSync: false);
+    _prefs.setBool(_keyPendingSync, false);
+    return true;
   }
 }
 

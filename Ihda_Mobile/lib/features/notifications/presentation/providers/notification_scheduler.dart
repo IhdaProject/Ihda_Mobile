@@ -45,6 +45,7 @@ final notificationSchedulerProvider = Provider.autoDispose<void>((ref) {
 
       final now = DateTime.now();
 
+      // 1. Farz & Main Prayer Notifications
       for (final prayer in day.prayers) {
         if (!prayer.type.isNotifiable) continue;
         if (settings.mutedPrayers.contains(prayer.type)) continue;
@@ -80,6 +81,53 @@ final notificationSchedulerProvider = Provider.autoDispose<void>((ref) {
           soundType: config.sound,
           customAudioPath: config.customAudioName,
         );
+      }
+
+      // 2. Nafl Prayer Notifications (Ishroq: Quyosh + 15m, Zuho: Quyosh + 30m)
+      final sunrise = day.byType(PrayerType.sunrise);
+      if (sunrise != null) {
+        final ishraqConfig = detailedSettings.naflPrayers.firstWhere(
+          (p) => p.id == 'ishraq',
+          orElse: () => const PrayerNotificationConfig(id: 'ishraq', name: 'Ishroq', enabled: true),
+        );
+        final duhaConfig = detailedSettings.naflPrayers.firstWhere(
+          (p) => p.id == 'duha',
+          orElse: () => const PrayerNotificationConfig(id: 'duha', name: 'Zuho', enabled: true),
+        );
+
+        if (ishraqConfig.enabled) {
+          var ishraqTime = sunrise.time.add(const Duration(minutes: 15)).add(Duration(minutes: ishraqConfig.offsetMinutes));
+          var id = 70;
+          if (ishraqTime.isBefore(now)) {
+            ishraqTime = ishraqTime.add(const Duration(days: 1));
+            id = 170;
+          }
+          dataSource.schedulePrayerNotification(
+            id: id,
+            title: 'Ishroq namozi vaqti kirdi',
+            body: 'Quyosh chiqishidan 15 daqiqa o\'tdi. Ishroq namozini o\'qish vaqti kirdi.',
+            scheduledTime: ishraqTime,
+            soundType: ishraqConfig.sound,
+            customAudioPath: ishraqConfig.customAudioName,
+          );
+        }
+
+        if (duhaConfig.enabled) {
+          var duhaTime = sunrise.time.add(const Duration(minutes: 30)).add(Duration(minutes: duhaConfig.offsetMinutes));
+          var id = 80;
+          if (duhaTime.isBefore(now)) {
+            duhaTime = duhaTime.add(const Duration(days: 1));
+            id = 180;
+          }
+          dataSource.schedulePrayerNotification(
+            id: id,
+            title: 'Zuho (Choshgoh) namozi vaqti kirdi',
+            body: 'Zuho namozini o\'qish vaqti kirdi.',
+            scheduledTime: duhaTime,
+            soundType: duhaConfig.sound,
+            customAudioPath: duhaConfig.customAudioName,
+          );
+        }
       }
     });
   }

@@ -1,24 +1,25 @@
+import 'package:flutter/material.dart';
+
 enum PrayerType { fajr, sunrise, dhuhr, asr, maghrib, isha }
 
 extension PrayerTypeX on PrayerType {
   String get label {
     switch (this) {
       case PrayerType.fajr:
-        return 'Fajr';
+        return 'Bomdod';
       case PrayerType.sunrise:
-        return 'Sunrise';
+        return 'Quyosh';
       case PrayerType.dhuhr:
-        return 'Dhuhr';
+        return 'Peshshin';
       case PrayerType.asr:
         return 'Asr';
       case PrayerType.maghrib:
-        return 'Maghrib';
+        return 'Shom';
       case PrayerType.isha:
-        return 'Isha';
+        return 'Xufton';
     }
   }
 
-  /// Sunrise is shown for reference but isn't a prayer you're notified for.
   bool get isNotifiable => this != PrayerType.sunrise;
 }
 

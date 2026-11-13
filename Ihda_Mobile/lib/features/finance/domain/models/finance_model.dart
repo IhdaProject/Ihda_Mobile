@@ -14,7 +14,7 @@ enum ExpenseCategory {
   final String label;
   final IconData icon;
   final Color color;
-  final bool isEssential; // Zaruriy vs Ortiqcha
+  final bool isEssential; // Zaruriy vs Ortiqcha/Istak
 
   const ExpenseCategory(this.label, this.icon, this.color, this.isEssential);
 }
@@ -35,6 +35,24 @@ class TransactionItem {
     required this.date,
     required this.isExpense,
   });
+
+  TransactionItem copyWith({
+    String? id,
+    String? title,
+    double? amount,
+    ExpenseCategory? category,
+    DateTime? date,
+    bool? isExpense,
+  }) {
+    return TransactionItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      category: category ?? this.category,
+      date: date ?? this.date,
+      isExpense: isExpense ?? this.isExpense,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
