@@ -20,8 +20,8 @@ class AppConstants {
   static const String prefsKeyThemeMode = 'theme_mode';
   static const String prefsKeyDomain = 'app_domain';
 
-  static const String defaultCityName = 'Toshkent shahri';
+  static const String defaultCityName = 'Nurota tumani';
   static const String defaultCountryName = "O'zbekiston";
-  static const double defaultLatitude = 41.2995;
-  static const double defaultLongitude = 69.2401;
+  static const double defaultLatitude = 40.5614;
+  static const double defaultLongitude = 65.6886;
 }

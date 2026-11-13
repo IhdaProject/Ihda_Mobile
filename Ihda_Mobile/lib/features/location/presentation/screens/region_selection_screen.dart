@@ -38,13 +38,14 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
   DateTime _currentMonth = DateTime.now();
 
   static const List<String> _uzbekistanRegions = [
+    'Nurota tumani',
     'Toshkent shahri',
     'Andijon viloyati',
     'Buxoro viloyati',
     'Farg\'ona viloyati',
     'Jizzax viloyati',
     'Namangan viloyati',
-    'Navoiy viloyati',
+    'Navoiy viloyati (Nurota)',
     'Qashqadaryo viloyati',
     'Qoraqalpog\'iston Respublika',
     'Samarqand viloyati',

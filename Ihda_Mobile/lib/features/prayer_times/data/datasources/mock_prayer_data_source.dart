@@ -2,11 +2,11 @@ import 'dart:math' as math;
 
 import '../../domain/entities/prayer.dart';
 import '../../domain/entities/prayer_day.dart';
+import 'nurota_prayer_data.dart';
 import 'prayer_data_source.dart';
 
 /// Generates realistic-looking prayer times without any network call.
-/// Base times are roughly Tashkent-appropriate; a small daily drift is
-/// applied so a full month looks natural rather than identical every day.
+/// Priority is given to official Nurota timetable (from islom.uz).
 class MockPrayerDataSource implements PrayerDataSource {
   static const _baseMinutes = {
     PrayerType.fajr: 5 * 60 + 10,
@@ -19,23 +19,29 @@ class MockPrayerDataSource implements PrayerDataSource {
 
   @override
   Future<PrayerDay> getTodayPrayerTimes({CalculationMethod? method}) async {
-    await Future.delayed(const Duration(milliseconds: 350));
-    return _buildDay(DateTime.now(), method: method);
+    await Future.delayed(const Duration(milliseconds: 200));
+    final now = DateTime.now();
+    final nurotaDay = NurotaPrayerData.getPrayerDayForNurota(now);
+    if (nurotaDay != null) return nurotaDay;
+    return _buildDay(now, method: method);
   }
 
   @override
   Future<List<PrayerDay>> getPrayerCalendar(DateTime month, {CalculationMethod? method}) async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 300));
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
     return List.generate(
       daysInMonth,
-      (i) => _buildDay(DateTime(month.year, month.month, i + 1), method: method),
+      (i) {
+        final date = DateTime(month.year, month.month, i + 1);
+        final nurotaDay = NurotaPrayerData.getPrayerDayForNurota(date);
+        if (nurotaDay != null) return nurotaDay;
+        return _buildDay(date, method: method);
+      },
     );
   }
 
   PrayerDay _buildDay(DateTime date, {CalculationMethod? method}) {
-    // Small deterministic drift per day-of-year so times shift gradually,
-    // like real seasonal variation, plus a tiny offset per method.
     final dayOfYear = DateTime(date.year, date.month, date.day)
         .difference(DateTime(date.year, 1, 1))
         .inDays;
