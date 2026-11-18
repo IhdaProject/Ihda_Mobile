@@ -282,6 +282,7 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final settingsAsync = ref.watch(settingsControllerProvider);
     final selectedRegion = settingsAsync.value?.region ?? 'Toshkent shahri';
     final calendarAsync = ref.watch(prayerCalendarProvider(_currentMonth));
@@ -512,17 +513,17 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Container(
-                                            color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                                            color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
                                             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                                            child: const Row(
+                                            child: Row(
                                               children: [
-                                                SizedBox(width: 65, child: Text('Sana', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                                                SizedBox(width: 58, child: Text('Bomdod', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                                                SizedBox(width: 58, child: Text('Quyosh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                                                SizedBox(width: 58, child: Text('Peshshin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                                                SizedBox(width: 58, child: Text('Asr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                                                SizedBox(width: 58, child: Text('Shom', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                                                SizedBox(width: 58, child: Text('Xufton', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                                SizedBox(width: 65, child: Text('Sana', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87))),
+                                                SizedBox(width: 58, child: Text('Bomdod', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87))),
+                                                SizedBox(width: 58, child: Text('Quyosh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87))),
+                                                SizedBox(width: 58, child: Text('Peshshin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87))),
+                                                SizedBox(width: 58, child: Text('Asr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87))),
+                                                SizedBox(width: 58, child: Text('Shom', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87))),
+                                                SizedBox(width: 58, child: Text('Xufton', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87))),
                                               ],
                                             ),
                                           ),
@@ -536,7 +537,7 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                                                       color: (day.date.year == today.year &&
                                                               day.date.month == today.month &&
                                                               day.date.day == today.day)
-                                                          ? Theme.of(context).colorScheme.primary.withOpacity(0.08)
+                                                          ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
                                                           : null,
                                                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                                                       child: Row(
@@ -547,8 +548,10 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                                                               '${day.date.day}-${_formatShortWeekday(day.date)}',
                                                               style: TextStyle(
                                                                 fontSize: 12,
-                                                                fontWeight: day.date.day == today.day ? FontWeight.bold : FontWeight.normal,
-                                                                color: day.date.day == today.day ? Theme.of(context).colorScheme.primary : null,
+                                                                fontWeight: day.date.day == today.day ? FontWeight.bold : FontWeight.w500,
+                                                                color: day.date.day == today.day
+                                                                    ? Theme.of(context).colorScheme.primary
+                                                                    : (isDark ? Colors.white : Colors.black87),
                                                               ),
                                                             ),
                                                           ),
@@ -557,7 +560,11 @@ class _RegionSelectionScreenState extends ConsumerState<RegionSelectionScreen> {
                                                               width: 58,
                                                               child: Text(
                                                                 '${prayer.time.hour.toString().padLeft(2, '0')}:${prayer.time.minute.toString().padLeft(2, '0')}',
-                                                                style: const TextStyle(fontSize: 12),
+                                                                style: TextStyle(
+                                                                  fontSize: 12,
+                                                                  color: isDark ? Colors.white70 : Colors.black87,
+                                                                  fontWeight: FontWeight.w500,
+                                                                ),
                                                               ),
                                                             ),
                                                         ],
