@@ -71,7 +71,7 @@ class ServicesController extends StateNotifier<ServicesState> {
   List<ServiceItem> getOrderedServices() {
     final allServices = getAppServices();
     final map = {for (var s in allServices) s.id: s};
-    return state.serviceIds.map((id) => map[id]!).where((s) => s != null).toList();
+    return state.serviceIds.where((id) => map.containsKey(id)).map((id) => map[id]!).toList();
   }
 }
 

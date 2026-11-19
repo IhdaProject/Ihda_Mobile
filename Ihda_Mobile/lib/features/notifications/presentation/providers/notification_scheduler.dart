@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../prayer_times/domain/entities/prayer.dart';
@@ -25,146 +26,194 @@ String _getPrayerConfigId(PrayerType type) {
 
 final Set<String> _triggeredInAppKeys = {};
 
-/// Schedules 20+ offline system AlarmClock notifications for today and tomorrow.
-/// Does NOT watch clockTickProvider so system alarms stay permanently registered in AlarmManager!
+/// Schedules rolling multi-day offline alarms (5 days ahead, ~45 alarms).
 final notificationSchedulerProvider = Provider.autoDispose<void>((ref) {
   ref.watch(notificationInitializerProvider);
 
   final settingsAsync = ref.watch(settingsControllerProvider);
   final detailedSettings = ref.watch(detailedNotificationSettingsProvider);
-  final prayerDayAsync = ref.watch(todayPrayerDayProvider);
+  final repo = ref.watch(prayerRepositoryProvider);
   final dataSource = ref.watch(notificationDataSourceProvider);
 
-  if (settingsAsync.hasValue && prayerDayAsync.hasValue) {
+  if (settingsAsync.hasValue) {
     final settings = settingsAsync.value!;
-    final day = prayerDayAsync.value!;
+    final now = DateTime.now();
 
-    dataSource.cancelAll().then((_) {
+    dataSource.cancelAll().then((_) async {
       if (!settings.notificationsEnabled || !detailedSettings.globalEnabled) return;
 
-      final now = DateTime.now();
+      int alarmIdCounter = 100;
 
-      // 1. Schedule all 6 main prayer events (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha)
-      for (final prayer in day.prayers) {
-        if (settings.mutedPrayers.contains(prayer.type)) continue;
+      // Schedule for next 5 days (5 days * 9 = 45 alarms, safely within limits)
+      for (int dayOffset = 0; dayOffset < 5; dayOffset++) {
+        final targetDate = now.add(Duration(days: dayOffset));
+        try {
+          final day = await repo.getTodayPrayerTimes(method: settings.calculationMethod);
+          // Build date-adjusted prayer day for targetDate
+          final adjustedDay = DateTime(targetDate.year, targetDate.month, targetDate.day);
 
-        final configId = _getPrayerConfigId(prayer.type);
-        final config = detailedSettings.mainPrayers.firstWhere(
-          (c) => c.id == configId,
-          orElse: () => PrayerNotificationConfig(id: configId, name: prayer.type.label, enabled: true),
-        );
+          // 1. Main Prayers
+          for (final prayer in day.prayers) {
+            if (settings.mutedPrayers.contains(prayer.type)) continue;
 
-        if (!config.enabled) continue;
+            final configId = _getPrayerConfigId(prayer.type);
+            final config = detailedSettings.mainPrayers.firstWhere(
+              (c) => c.id == configId,
+              orElse: () => PrayerNotificationConfig(id: configId, name: prayer.type.label, enabled: true),
+            );
 
-        var scheduledTime = prayer.time.add(Duration(minutes: config.offsetMinutes));
-        var notificationId = (prayer.type.index + 1) * 10;
+            if (!config.enabled) continue;
 
-        // If today's time has already passed, schedule for tomorrow!
-        if (scheduledTime.isBefore(now)) {
-          scheduledTime = scheduledTime.add(const Duration(days: 1));
-          notificationId = (prayer.type.index + 1) * 10 + 100;
-        }
+            final baseTime = DateTime(
+              adjustedDay.year,
+              adjustedDay.month,
+              adjustedDay.day,
+              prayer.time.hour,
+              prayer.time.minute,
+              prayer.time.second,
+            );
 
-        final titleText = prayer.type == PrayerType.sunrise
-            ? 'Quyosh chiqishi (Bomdod chiqishi)'
-            : '${prayer.type.label} kirishi (Namoz vaqti)';
+            final scheduledTime = baseTime.add(Duration(seconds: config.offsetSeconds));
 
-        final bodyText = config.offsetMinutes == 0
-            ? 'Hozir ${prayer.type.label} vaqti kirdi.'
-            : (config.offsetMinutes < 0
-                ? '${prayer.type.label} vaqtiga ${config.offsetMinutes.abs()} daqiqa qoldi.'
-                : '${prayer.type.label} vaqtidan ${config.offsetMinutes} daqiqa o\'tdi.');
+            if (scheduledTime.isBefore(now)) continue;
 
-        dataSource.schedulePrayerNotification(
-          id: notificationId,
-          title: titleText,
-          body: bodyText,
-          scheduledTime: scheduledTime,
-          soundType: config.sound,
-          customAudioPath: config.customAudioName,
-        );
-      }
+            final timeStr = DateFormat('HH:mm').format(baseTime);
+            final titleText = config.formatTitle(prayer.type.label, timeStr);
+            final bodyText = config.formatBody(prayer.type.label, timeStr);
 
-      // 2. Schedule Nafl Prayer Events (Ishroq, Zuho, Tahajjud)
-      final sunrise = day.byType(PrayerType.sunrise);
-      final fajrToday = day.byType(PrayerType.fajr);
-      final ishaToday = day.byType(PrayerType.isha);
+            alarmIdCounter++;
+            dataSource.schedulePrayerNotification(
+              id: alarmIdCounter,
+              title: titleText,
+              body: bodyText,
+              scheduledTime: scheduledTime,
+              soundType: config.sound,
+              customAudioPath: config.customAudioName,
+              targetRoute: config.targetRoute,
+              payload: '{"prayerId":"$configId","type":"main_prayer"}',
+            );
+          }
 
-      // A. Ishroq (Sunrise + 15 minutes)
-      final ishraqConfig = detailedSettings.naflPrayers.firstWhere(
-        (p) => p.id == 'ishraq',
-        orElse: () => const PrayerNotificationConfig(id: 'ishraq', name: 'Ishroq', enabled: true),
-      );
-      if (ishraqConfig.enabled && sunrise != null) {
-        var ishraqTime = sunrise.time.add(const Duration(minutes: 15)).add(Duration(minutes: ishraqConfig.offsetMinutes));
-        var id = 70;
-        if (ishraqTime.isBefore(now)) {
-          ishraqTime = ishraqTime.add(const Duration(days: 1));
-          id = 170;
-        }
-        dataSource.schedulePrayerNotification(
-          id: id,
-          title: 'Ishroq kirishi (Nafl namoz)',
-          body: 'Quyosh chiqishidan 15 daqiqa o\'tdi. Ishroq namozini o\'qish vaqti kirdi.',
-          scheduledTime: ishraqTime,
-          soundType: ishraqConfig.sound,
-          customAudioPath: ishraqConfig.customAudioName,
-        );
-      }
+          // 2. Nafl Prayers
+          final sunrise = day.byType(PrayerType.sunrise);
+          final fajr = day.byType(PrayerType.fajr);
+          final isha = day.byType(PrayerType.isha);
 
-      // B. Zuho / Choshgoh (Sunrise + 30 minutes)
-      final duhaConfig = detailedSettings.naflPrayers.firstWhere(
-        (p) => p.id == 'duha',
-        orElse: () => const PrayerNotificationConfig(id: 'duha', name: 'Zuho', enabled: true),
-      );
-      if (duhaConfig.enabled && sunrise != null) {
-        var duhaTime = sunrise.time.add(const Duration(minutes: 30)).add(Duration(minutes: duhaConfig.offsetMinutes));
-        var id = 80;
-        if (duhaTime.isBefore(now)) {
-          duhaTime = duhaTime.add(const Duration(days: 1));
-          id = 180;
-        }
-        dataSource.schedulePrayerNotification(
-          id: id,
-          title: 'Zuho kirishi (Choshgoh namozi)',
-          body: 'Zuho (Choshgoh) namozini o\'qish vaqti kirdi.',
-          scheduledTime: duhaTime,
-          soundType: duhaConfig.sound,
-          customAudioPath: duhaConfig.customAudioName,
-        );
-      }
+          // Ishroq
+          final ishraqConfig = detailedSettings.naflPrayers.firstWhere(
+            (p) => p.id == 'ishraq',
+            orElse: () => const PrayerNotificationConfig(id: 'ishraq', name: 'Ishroq', enabled: true),
+          );
+          if (ishraqConfig.enabled && sunrise != null) {
+            final baseTime = DateTime(
+              adjustedDay.year,
+              adjustedDay.month,
+              adjustedDay.day,
+              sunrise.time.hour,
+              sunrise.time.minute,
+              sunrise.time.second,
+            ).add(const Duration(minutes: 15));
 
-      // C. Tahajjud (After 2/3 of Night between Xufton and Tomorrow's Bomdod)
-      final tahajjudConfig = detailedSettings.naflPrayers.firstWhere(
-        (p) => p.id == 'tahajjud',
-        orElse: () => const PrayerNotificationConfig(id: 'tahajjud', name: 'Tahajjud', enabled: true),
-      );
-      if (tahajjudConfig.enabled && ishaToday != null && fajrToday != null) {
-        final tomorrowFajr = fajrToday.time.add(const Duration(days: 1));
-        final nightSecs = tomorrowFajr.difference(ishaToday.time).inSeconds;
-        var tahajjudTime = ishaToday.time
-            .add(Duration(seconds: (nightSecs * 2 / 3).round()))
-            .add(Duration(minutes: tahajjudConfig.offsetMinutes));
+            final ishraqTime = baseTime.add(Duration(seconds: ishraqConfig.offsetSeconds));
+            if (!ishraqTime.isBefore(now)) {
+              final timeStr = DateFormat('HH:mm').format(baseTime);
+              alarmIdCounter++;
+              dataSource.schedulePrayerNotification(
+                id: alarmIdCounter,
+                title: ishraqConfig.formatTitle('Ishroq', timeStr),
+                body: ishraqConfig.formatBody('Ishroq', timeStr),
+                scheduledTime: ishraqTime,
+                soundType: ishraqConfig.sound,
+                customAudioPath: ishraqConfig.customAudioName,
+                targetRoute: ishraqConfig.targetRoute,
+                payload: '{"prayerId":"ishraq","type":"nafl_prayer"}',
+              );
+            }
+          }
 
-        var id = 90;
-        if (tahajjudTime.isBefore(now)) {
-          tahajjudTime = tahajjudTime.add(const Duration(days: 1));
-          id = 190;
-        }
-        dataSource.schedulePrayerNotification(
-          id: id,
-          title: 'Tahajjud vaqti kirdi (Kecha namozi)',
-          body: 'Kechaning uchdan ikki qismi o\'tdi. Tahajjud namozini o\'qish vaqti kirdi.',
-          scheduledTime: tahajjudTime,
-          soundType: tahajjudConfig.sound,
-          customAudioPath: tahajjudConfig.customAudioName,
-        );
+          // Zuho
+          final duhaConfig = detailedSettings.naflPrayers.firstWhere(
+            (p) => p.id == 'duha',
+            orElse: () => const PrayerNotificationConfig(id: 'duha', name: 'Zuho', enabled: true),
+          );
+          if (duhaConfig.enabled && sunrise != null) {
+            final baseTime = DateTime(
+              adjustedDay.year,
+              adjustedDay.month,
+              adjustedDay.day,
+              sunrise.time.hour,
+              sunrise.time.minute,
+              sunrise.time.second,
+            ).add(const Duration(minutes: 30));
+
+            final duhaTime = baseTime.add(Duration(seconds: duhaConfig.offsetSeconds));
+            if (!duhaTime.isBefore(now)) {
+              final timeStr = DateFormat('HH:mm').format(baseTime);
+              alarmIdCounter++;
+              dataSource.schedulePrayerNotification(
+                id: alarmIdCounter,
+                title: duhaConfig.formatTitle('Zuho', timeStr),
+                body: duhaConfig.formatBody('Zuho', timeStr),
+                scheduledTime: duhaTime,
+                soundType: duhaConfig.sound,
+                customAudioPath: duhaConfig.customAudioName,
+                targetRoute: duhaConfig.targetRoute,
+                payload: '{"prayerId":"duha","type":"nafl_prayer"}',
+              );
+            }
+          }
+
+          // Tahajjud
+          final tahajjudConfig = detailedSettings.naflPrayers.firstWhere(
+            (p) => p.id == 'tahajjud',
+            orElse: () => const PrayerNotificationConfig(id: 'tahajjud', name: 'Tahajjud', enabled: true),
+          );
+          if (tahajjudConfig.enabled && isha != null && fajr != null) {
+            final ishaTime = DateTime(
+              adjustedDay.year,
+              adjustedDay.month,
+              adjustedDay.day,
+              isha.time.hour,
+              isha.time.minute,
+            );
+            final tomorrowFajr = DateTime(
+              adjustedDay.year,
+              adjustedDay.month,
+              adjustedDay.day + 1,
+              fajr.time.hour,
+              fajr.time.minute,
+            );
+            final nightSecs = tomorrowFajr.difference(ishaTime).inSeconds;
+            final baseTime = ishaTime.add(Duration(seconds: (nightSecs * 2 / 3).round()));
+            final tahajjudTime = baseTime.add(Duration(seconds: tahajjudConfig.offsetSeconds));
+
+            if (!tahajjudTime.isBefore(now)) {
+              final timeStr = DateFormat('HH:mm').format(baseTime);
+              alarmIdCounter++;
+              dataSource.schedulePrayerNotification(
+                id: alarmIdCounter,
+                title: tahajjudConfig.formatTitle('Tahajjud', timeStr),
+                body: tahajjudConfig.formatBody('Tahajjud', timeStr),
+                scheduledTime: tahajjudTime,
+                soundType: tahajjudConfig.sound,
+                customAudioPath: tahajjudConfig.customAudioName,
+                targetRoute: tahajjudConfig.targetRoute,
+                payload: '{"prayerId":"tahajjud","type":"nafl_prayer"}',
+              );
+            }
+          }
+        } catch (_) {}
       }
     });
   }
 });
 
-/// Live in-app ticker that watches clockTickProvider for immediate triggers when app is open in foreground.
+/// Reschedules all reminders on demand.
+Future<void> rescheduleAllReminders(WidgetRef ref) async {
+  ref.invalidate(notificationSchedulerProvider);
+}
+
+/// In-app live ticker for exact minute notifications when app is active in foreground.
 final inAppPrayerTickerProvider = Provider.autoDispose<void>((ref) {
   final clockAsync = ref.watch(clockTickProvider);
   final settingsAsync = ref.watch(settingsControllerProvider);
@@ -194,7 +243,7 @@ final inAppPrayerTickerProvider = Provider.autoDispose<void>((ref) {
 
         if (!config.enabled) continue;
 
-        final targetTime = prayer.time.add(Duration(minutes: config.offsetMinutes));
+        final targetTime = prayer.time.add(Duration(seconds: config.offsetSeconds));
 
         if (now.year == targetTime.year &&
             now.month == targetTime.month &&
@@ -207,21 +256,17 @@ final inAppPrayerTickerProvider = Provider.autoDispose<void>((ref) {
           if (!_triggeredInAppKeys.contains(key)) {
             _triggeredInAppKeys.add(key);
 
-            final titleText = prayer.type == PrayerType.sunrise
-                ? 'Quyosh chiqishi (Bomdod chiqishi)'
-                : '${prayer.type.label} kirishi (Namoz vaqti)';
-
-            final bodyText = config.offsetMinutes == 0
-                ? 'Hozir ${prayer.type.label} vaqti kirdi.'
-                : (config.offsetMinutes < 0
-                    ? '${prayer.type.label} vaqtiga ${config.offsetMinutes.abs()} daqiqa qoldi.'
-                    : '${prayer.type.label} vaqtidan ${config.offsetMinutes} daqiqa o\'tdi.');
+            final timeStr = DateFormat('HH:mm').format(prayer.time);
+            final titleText = config.formatTitle(prayer.type.label, timeStr);
+            final bodyText = config.formatBody(prayer.type.label, timeStr);
 
             dataSource.showImmediateTestNotification(
               title: titleText,
               body: bodyText,
               soundType: config.sound,
               customAudioPath: config.customAudioName,
+              targetRoute: config.targetRoute,
+              payload: '{"prayerId":"$configId","type":"in_app_ticker"}',
             );
           }
         }

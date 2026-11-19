@@ -6,6 +6,7 @@ import '../../../../core/config/app_environment.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../notifications/domain/entities/notification_settings.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
+import '../../../settings/domain/entities/app_settings.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../data/datasources/api_prayer_data_source.dart';
 import '../../data/datasources/mock_prayer_data_source.dart';
@@ -31,8 +32,8 @@ final prayerRepositoryProvider = Provider<PrayerRepository>((ref) {
 });
 
 /// Today's prayer times, re-fetched whenever the calculation method changes.
-final todayPrayerDayProvider = FutureProvider.autoDispose<PrayerDay>((ref) async {
-  final settings = await ref.watch(settingsControllerProvider.future);
+final todayPrayerDayProvider = FutureProvider.autoDispose<PrayerDay>((ref) {
+  final settings = ref.watch(settingsControllerProvider).valueOrNull ?? const AppSettings();
   return ref.watch(prayerRepositoryProvider).getTodayPrayerTimes(
         method: settings.calculationMethod,
       );
@@ -40,8 +41,8 @@ final todayPrayerDayProvider = FutureProvider.autoDispose<PrayerDay>((ref) async
 
 /// A whole month for the calendar screen. Parameterized by the first-of-month date.
 final prayerCalendarProvider =
-    FutureProvider.autoDispose.family<List<PrayerDay>, DateTime>((ref, month) async {
-  final settings = await ref.watch(settingsControllerProvider.future);
+    FutureProvider.autoDispose.family<List<PrayerDay>, DateTime>((ref, month) {
+  final settings = ref.watch(settingsControllerProvider).valueOrNull ?? const AppSettings();
   return ref.watch(prayerRepositoryProvider).getPrayerCalendar(
         month,
         method: settings.calculationMethod,
@@ -68,9 +69,11 @@ class PrayerCountdown {
   final Prayer? next;
   final Duration? remaining;
   final bool isTomorrowFajr;
-  final String? customLabel;
-  final String? timeBadge;
+  final String displayTitle;
+  final String countdownSubtitle;
   final bool hideHourglass;
+  final int yellowWarningMinutes;
+  final int redWarningMinutes;
   final bool isIshraqActive;
   final bool isTahajjudActive;
 
@@ -79,9 +82,11 @@ class PrayerCountdown {
     this.next,
     this.remaining,
     this.isTomorrowFajr = false,
-    this.customLabel,
-    this.timeBadge,
+    required this.displayTitle,
+    required this.countdownSubtitle,
     this.hideHourglass = false,
+    this.yellowWarningMinutes = 30,
+    this.redWarningMinutes = 15,
     this.isIshraqActive = false,
     this.isTahajjudActive = false,
   });
@@ -98,7 +103,6 @@ final prayerCountdownProvider = Provider.autoDispose<AsyncValue<PrayerCountdown>
     data: (day) {
       final now = nowAsync.valueOrNull ?? DateTime.now();
 
-      // Check Nafl enabled settings
       final ishraqConfig = detailedSettings.naflPrayers.firstWhere(
         (p) => p.id == 'ishraq',
         orElse: () => const PrayerNotificationConfig(id: 'ishraq', name: 'Ishroq', enabled: true),
@@ -115,137 +119,224 @@ final prayerCountdownProvider = Provider.autoDispose<AsyncValue<PrayerCountdown>
       final fajrToday = day.byType(PrayerType.fajr);
       final sunrise = day.byType(PrayerType.sunrise);
       final dhuhr = day.byType(PrayerType.dhuhr);
+      final asr = day.byType(PrayerType.asr);
+      final maghrib = day.byType(PrayerType.maghrib);
       final ishaToday = day.byType(PrayerType.isha);
 
-      Prayer? next = day.nextPrayer(now);
       Prayer? current = day.currentPrayer(now);
 
-      bool isTomorrowFajr = false;
-      String? customLabel;
-      String? timeBadge;
+      String displayTitle = 'Kutish...';
+      String countdownSubtitle = 'Qolgan vaqt:';
       bool hideHourglass = false;
+      int yellowWarningMinutes = 30;
+      int redWarningMinutes = 15;
+      bool isTomorrowFajr = false;
       bool isIshraqActive = false;
       bool isTahajjudActive = false;
-      Duration? remainingOverride;
+      Prayer? nextTarget;
+      DateTime? targetTime;
 
-      // 1. Calculate Tahajjud time (after 2/3 of night between Xufton and Tomorrow's Bomdod)
-      DateTime? tahajjudStartTime;
-      if (ishaToday != null && fajrToday != null) {
+      // -------------------------------------------------------------
+      // TIMELINE COMPUTATION (RULES 1 TO 13)
+      // -------------------------------------------------------------
+
+      if (fajrToday != null && sunrise != null && dhuhr != null && asr != null && maghrib != null && ishaToday != null) {
         final tomorrowFajrTime = fajrToday.time.add(const Duration(days: 1));
-        final nightDurationSecs = tomorrowFajrTime.difference(ishaToday.time).inSeconds;
-        tahajjudStartTime = ishaToday.time.add(Duration(seconds: (nightDurationSecs * 2 / 3).round()));
-      }
 
-      // 2. Check Tahajjud Window (Between 2/3 night and Fajr)
-      if (tahajjudStartTime != null && !now.isBefore(tahajjudStartTime)) {
-        final tomorrowFajrTime = fajrToday!.time.add(const Duration(days: 1));
-        if (now.isBefore(tomorrowFajrTime)) {
-          isTahajjudActive = true;
-          next = Prayer(type: PrayerType.fajr, time: tomorrowFajrTime);
-          isTomorrowFajr = true;
+        // 1. Bomdod active (Fajr -> Sunrise) => RULE 6
+        if (!now.isBefore(fajrToday.time) && now.isBefore(sunrise.time)) {
+          nextTarget = sunrise;
+          targetTime = sunrise.time;
+          displayTitle = 'Quyosh chiqishi';
+          countdownSubtitle = 'Quyosh chiqishiga qolgan vaqt';
+          hideHourglass = false;
+          yellowWarningMinutes = 30;
+          redWarningMinutes = 15;
+        }
+        // 2. Sunrise -> Dhuhr gap => RULES 7, 8, 9, 10, 11, 12, 13
+        else if (!now.isBefore(sunrise.time) && now.isBefore(dhuhr.time)) {
+          final ishraqStart = sunrise.time.add(const Duration(minutes: 15));
+          final ishraqEnd = sunrise.time.add(const Duration(minutes: 30));
+          final zuhoStart = ishraqEnd;
+          final zuhoEnd = dhuhr.time.subtract(const Duration(minutes: 40));
+
+          // 2A. Sunrise -> Ishroq Start (0-15 mins after Sunrise)
+          if (now.isBefore(ishraqStart)) {
+            if (ishraqConfig.enabled) {
+              // RULE 9: Ishroq yoniq
+              nextTarget = Prayer(type: PrayerType.sunrise, time: ishraqStart);
+              targetTime = ishraqStart;
+              displayTitle = 'Ishroq kirishi';
+              countdownSubtitle = 'Ishroqqacha qolgan vaqt';
+              hideHourglass = true;
+            } else if (duhaConfig.enabled) {
+              // RULE 8: Zuho yongan, Ishroq o'chiq
+              nextTarget = Prayer(type: PrayerType.dhuhr, time: zuhoStart);
+              targetTime = zuhoStart;
+              displayTitle = 'Zuho kirishi';
+              countdownSubtitle = 'Zuhogacha qolgan vaqt';
+              hideHourglass = true;
+            } else {
+              // RULE 7: Ishroq ham, Zuho ham o'chiq
+              nextTarget = dhuhr;
+              targetTime = dhuhr.time;
+              displayTitle = 'Peshin kirishi';
+              countdownSubtitle = 'Peshingacha qolgan vaqt';
+              hideHourglass = true;
+            }
+          }
+          // 2B. Ishroq Window (15-30 mins after Sunrise)
+          else if (!now.isBefore(ishraqStart) && now.isBefore(ishraqEnd)) {
+            if (ishraqConfig.enabled) {
+              isIshraqActive = true;
+              if (duhaConfig.enabled) {
+                // RULE 11: Ishroq kirdi, Zuho yoniq
+                nextTarget = Prayer(type: PrayerType.dhuhr, time: zuhoStart);
+                targetTime = zuhoStart;
+                displayTitle = 'Zuho kirishi';
+                countdownSubtitle = 'Zuhogacha qolgan vaqt';
+                hideHourglass = false;
+                yellowWarningMinutes = 10;
+                redWarningMinutes = 5;
+              } else {
+                // RULE 10: Ishroq kirdi, Zuho o'chiq
+                nextTarget = Prayer(type: PrayerType.sunrise, time: ishraqEnd);
+                targetTime = ishraqEnd;
+                displayTitle = 'Ishroq chiqishi';
+                countdownSubtitle = 'Ishroq chiqishiga qolgan vaqt';
+                hideHourglass = false;
+                yellowWarningMinutes = 10;
+                redWarningMinutes = 5;
+              }
+            } else if (duhaConfig.enabled) {
+              // RULE 8
+              nextTarget = Prayer(type: PrayerType.dhuhr, time: zuhoStart);
+              targetTime = zuhoStart;
+              displayTitle = 'Zuho kirishi';
+              countdownSubtitle = 'Zuhogacha qolgan vaqt';
+              hideHourglass = true;
+            } else {
+              // RULE 7
+              nextTarget = dhuhr;
+              targetTime = dhuhr.time;
+              displayTitle = 'Peshin kirishi';
+              countdownSubtitle = 'Peshingacha qolgan vaqt';
+              hideHourglass = true;
+            }
+          }
+          // 2C. Zuho Window (30 mins after Sunrise -> Dhuhr - 40 mins)
+          else if (!now.isBefore(zuhoStart) && now.isBefore(zuhoEnd)) {
+            if (duhaConfig.enabled) {
+              // RULE 12: Zuho kirdi
+              nextTarget = Prayer(type: PrayerType.dhuhr, time: zuhoEnd);
+              targetTime = zuhoEnd;
+              displayTitle = 'Zuho chiqishi';
+              countdownSubtitle = 'Zuho chiqishiga qolgan vaqt';
+              hideHourglass = false;
+              yellowWarningMinutes = 30;
+              redWarningMinutes = 15;
+            } else {
+              // RULE 7: Zuho o'chiq
+              nextTarget = dhuhr;
+              targetTime = dhuhr.time;
+              displayTitle = 'Peshin kirishi';
+              countdownSubtitle = 'Peshingacha qolgan vaqt';
+              hideHourglass = true;
+            }
+          }
+          // 2D. Zaval Gap (last 40 mins before Dhuhr)
+          else {
+            // RULE 13: Zuho chiqdi
+            nextTarget = dhuhr;
+            targetTime = dhuhr.time;
+            displayTitle = 'Peshin kirishi';
+            countdownSubtitle = 'Peshingacha qolgan vaqt';
+            hideHourglass = true;
+          }
+        }
+        // 3. Peshin active (Dhuhr -> Asr) => RULE 1
+        else if (!now.isBefore(dhuhr.time) && now.isBefore(asr.time)) {
+          nextTarget = asr;
+          targetTime = asr.time;
+          displayTitle = 'Asr kirishi';
+          countdownSubtitle = 'Asrga qolgan vaqt';
+          hideHourglass = false;
+          yellowWarningMinutes = 30;
+          redWarningMinutes = 15;
+        }
+        // 4. Asr active (Asr -> Maghrib) => RULE 2
+        else if (!now.isBefore(asr.time) && now.isBefore(maghrib.time)) {
+          nextTarget = maghrib;
+          targetTime = maghrib.time;
+          displayTitle = 'Shom kirishi';
+          countdownSubtitle = 'Shomga qolgan vaqt';
+          hideHourglass = false;
+          yellowWarningMinutes = 30;
+          redWarningMinutes = 15;
+        }
+        // 5. Shom active (Maghrib -> Isha) => RULE 3
+        else if (!now.isBefore(maghrib.time) && now.isBefore(ishaToday.time)) {
+          nextTarget = ishaToday;
+          targetTime = ishaToday.time;
+          displayTitle = 'Xufton kirishi';
+          countdownSubtitle = 'Xuftonga qolgan vaqt';
+          hideHourglass = false;
+          yellowWarningMinutes = 40;
+          redWarningMinutes = 25;
+        }
+        // 6. Xufton active / Night => RULES 4 & 5
+        else {
+          final nightSecs = tomorrowFajrTime.difference(ishaToday.time).inSeconds;
+          final tahajjudStart = ishaToday.time.add(Duration(seconds: (nightSecs * 2 / 3).round()));
+
           if (tahajjudConfig.enabled) {
-            customLabel = 'Tahajjud vaqti';
+            // RULE 5: Tahajjud yoqilgan
+            if (now.isBefore(tahajjudStart)) {
+              // Rule 5 Phase A: Before Tahajjud Start
+              nextTarget = Prayer(type: PrayerType.fajr, time: tahajjudStart);
+              targetTime = tahajjudStart;
+              displayTitle = 'Tahajjud qiyom vaqti';
+              countdownSubtitle = 'Tahajjudgacha qolgan vaqt';
+              hideHourglass = true;
+            } else {
+              // Rule 5 Phase B: After Tahajjud Start (Qiyom vaqti kirdi)
+              isTahajjudActive = true;
+              isTomorrowFajr = true;
+              nextTarget = Prayer(type: PrayerType.fajr, time: tomorrowFajrTime);
+              targetTime = tomorrowFajrTime;
+              displayTitle = 'Bomdod kirishi';
+              countdownSubtitle = 'Bomdodga qolgan vaqt';
+              hideHourglass = false;
+              yellowWarningMinutes = 30;
+              redWarningMinutes = 15;
+            }
           } else {
-            customLabel = 'Bomdod kirishi (Ertangi)';
+            // RULE 4: Tahajjud o'chiq
+            isTomorrowFajr = true;
+            nextTarget = Prayer(type: PrayerType.fajr, time: tomorrowFajrTime);
+            targetTime = tomorrowFajrTime;
+            displayTitle = 'Bomdod kirishi';
+            countdownSubtitle = 'Bomdodga qolgan vaqt';
+            hideHourglass = false;
+            yellowWarningMinutes = 30;
+            redWarningMinutes = 15;
           }
         }
       }
 
-      // 3. Handle late night before Tahajjud (Between Xufton and Tahajjud start)
-      if (next == null && !isTahajjudActive) {
-        if (fajrToday != null) {
-          final tomorrowFajrTime = fajrToday.time.add(const Duration(days: 1));
-          next = Prayer(type: PrayerType.fajr, time: tomorrowFajrTime);
-          isTomorrowFajr = true;
-          if (tahajjudStartTime != null && tahajjudConfig.enabled && now.isBefore(tahajjudStartTime)) {
-            next = Prayer(type: PrayerType.fajr, time: tahajjudStartTime);
-            customLabel = 'Tahajjud kirishi';
-            isTomorrowFajr = false;
-          } else {
-            customLabel = 'Bomdod kirishi (Ertangi)';
-          }
-        }
-      }
-
-      // 4. Handle Kirish / Chiqish & Nafl prayers between Sunrise and Dhuhr
-      if (next != null && next.type == PrayerType.dhuhr && sunrise != null && dhuhr != null) {
-        final ishraqStart = sunrise.time.add(const Duration(minutes: 15));
-        final ishraqEnd = sunrise.time.add(const Duration(minutes: 30));
-        final duhaStart = ishraqEnd;
-        final duhaEnd = dhuhr.time.subtract(const Duration(minutes: 40));
-
-        // A. Sunrise -> Ishroq Start (0 - 15 mins after Sunrise: Bomdod chiqishi / Quyosh)
-        if (now.isAfter(sunrise.time) && now.isBefore(ishraqStart)) {
-          if (ishraqConfig.enabled) {
-            next = Prayer(type: PrayerType.sunrise, time: ishraqStart);
-            customLabel = 'Ishroq kirishi';
-            hideHourglass = true;
-          } else {
-            customLabel = 'Ishroq chiqishi';
-            hideHourglass = true;
-          }
-        }
-        // B. Ishroq Window (15 - 30 mins after Sunrise)
-        else if (!now.isBefore(ishraqStart) && now.isBefore(ishraqEnd)) {
-          if (ishraqConfig.enabled) {
-            next = Prayer(type: PrayerType.sunrise, time: ishraqEnd);
-            customLabel = 'Ishroq kirishi';
-            isIshraqActive = true;
-            remainingOverride = ishraqEnd.difference(now);
-          } else {
-            customLabel = 'Ishroq chiqishi';
-          }
-        }
-        // C. Zuho Window (30 mins after Sunrise -> 40 mins before Dhuhr)
-        else if (!now.isBefore(duhaStart) && now.isBefore(duhaEnd)) {
-          if (duhaConfig.enabled) {
-            next = Prayer(type: PrayerType.dhuhr, time: duhaEnd);
-            customLabel = 'Zuho kirishi';
-            remainingOverride = duhaEnd.difference(now);
-          }
-        }
-        // D. Zaval / Makruh gap before Dhuhr (last 40 mins before Dhuhr)
-        else if (!now.isBefore(duhaEnd) && now.isBefore(dhuhr.time)) {
-          customLabel = 'Peshshin kirishi';
-          hideHourglass = true;
-        }
-      }
-
-      // Standard main prayer kirish labels
-      if (customLabel == null && next != null) {
-        switch (next.type) {
-          case PrayerType.fajr:
-            customLabel = isTomorrowFajr ? 'Bomdod kirishi (Ertangi)' : 'Bomdod kirishi';
-            break;
-          case PrayerType.dhuhr:
-            customLabel = 'Peshshin kirishi';
-            break;
-          case PrayerType.asr:
-            customLabel = 'Asr kirishi';
-            break;
-          case PrayerType.maghrib:
-            customLabel = 'Shom kirishi';
-            break;
-          case PrayerType.isha:
-            customLabel = 'Xufton kirishi';
-            break;
-          case PrayerType.sunrise:
-            customLabel = 'Quyosh chiqishi';
-            break;
-        }
-      }
-
-      final remaining = remainingOverride ?? (next != null ? next.time.difference(now) : null);
+      final Duration? remaining = targetTime != null ? targetTime.difference(now) : null;
 
       return AsyncData(
         PrayerCountdown(
           current: current,
-          next: next,
+          next: nextTarget,
           remaining: remaining,
           isTomorrowFajr: isTomorrowFajr,
-          customLabel: customLabel,
-          timeBadge: timeBadge,
+          displayTitle: displayTitle,
+          countdownSubtitle: countdownSubtitle,
           hideHourglass: hideHourglass,
+          yellowWarningMinutes: yellowWarningMinutes,
+          redWarningMinutes: redWarningMinutes,
           isIshraqActive: isIshraqActive,
           isTahajjudActive: isTahajjudActive,
         ),

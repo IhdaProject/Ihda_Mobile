@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../../../shared/widgets/state_widgets.dart';
 import '../../domain/entities/feed_item.dart';
 import '../providers/feed_providers.dart';

@@ -12,7 +12,6 @@ final mosqueDataSourceProvider = Provider<MosqueDataSource>((ref) {
     case DataSourceMode.mock:
       return MockMosqueDataSource();
     case DataSourceMode.api:
-      // Add an ApiMosqueDataSource implementing MosqueDataSource when ready.
       return MockMosqueDataSource();
   }
 });
@@ -39,6 +38,75 @@ class MosqueController extends AsyncNotifier<List<Mosque>> {
     ]);
     await ref.read(mosqueRepositoryProvider).setFavorite(id, updated);
   }
+
+  Future<void> toggleVisited(String id, {DateTime? visitDate}) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final target = current.firstWhere((m) => m.id == id);
+
+    final bool newVisited = !target.isVisited;
+    final List<DateTime> newDates = List<DateTime>.from(target.visitDates);
+
+    if (newVisited) {
+      final dateToAdd = visitDate ?? DateTime.now();
+      if (!newDates.contains(dateToAdd)) {
+        newDates.add(dateToAdd);
+        newDates.sort();
+      }
+    }
+
+    state = AsyncData([
+      for (final m in current)
+        if (m.id == id)
+          m.copyWith(isVisited: newVisited, visitDates: newDates)
+        else
+          m,
+    ]);
+
+    await ref.read(mosqueRepositoryProvider).setVisited(id, newVisited, newDates);
+  }
+
+  Future<void> addVisitRecord(String id, DateTime visitDate) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final target = current.firstWhere((m) => m.id == id);
+
+    final List<DateTime> newDates = List<DateTime>.from(target.visitDates);
+    newDates.add(visitDate);
+    newDates.sort();
+
+    state = AsyncData([
+      for (final m in current)
+        if (m.id == id)
+          m.copyWith(isVisited: true, visitDates: newDates)
+        else
+          m,
+    ]);
+
+    await ref.read(mosqueRepositoryProvider).setVisited(id, true, newDates);
+  }
+
+  Future<void> removeVisitRecord(String id, int index) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final target = current.firstWhere((m) => m.id == id);
+
+    final List<DateTime> newDates = List<DateTime>.from(target.visitDates);
+    if (index >= 0 && index < newDates.length) {
+      newDates.removeAt(index);
+    }
+    final bool stillVisited = newDates.isNotEmpty;
+
+    state = AsyncData([
+      for (final m in current)
+        if (m.id == id)
+          m.copyWith(isVisited: stillVisited, visitDates: newDates)
+        else
+          m,
+    ]);
+
+    await ref.read(mosqueRepositoryProvider).setVisited(id, stillVisited, newDates);
+  }
 }
 
 final mosqueControllerProvider =
@@ -47,6 +115,11 @@ final mosqueControllerProvider =
 final favoriteMosquesProvider = Provider.autoDispose<AsyncValue<List<Mosque>>>((ref) {
   final mosques = ref.watch(mosqueControllerProvider);
   return mosques.whenData((list) => list.where((m) => m.isFavorite).toList());
+});
+
+final visitedMosquesProvider = Provider.autoDispose<AsyncValue<List<Mosque>>>((ref) {
+  final mosques = ref.watch(mosqueControllerProvider);
+  return mosques.whenData((list) => list.where((m) => m.isVisited).toList());
 });
 
 final mosqueByIdProvider = FutureProvider.autoDispose.family<Mosque, String>((ref, id) {

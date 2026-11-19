@@ -47,6 +47,7 @@ dependencies:
   share_plus: ^10.1.4
   path_provider: ^2.1.4
   file_picker: ^8.0.0
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +65,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/app_icon.png
+    - assets/app_icon.svg
 
   # Uncomment and add real assets exported from Figma once available.
   # assets:

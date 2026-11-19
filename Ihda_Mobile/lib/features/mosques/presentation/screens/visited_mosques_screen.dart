@@ -1,0 +1,225 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../app/theme/app_radius.dart';
+import '../../../../app/theme/app_spacing.dart';
+import '../../../../shared/widgets/design_background.dart';
+import '../../../../shared/widgets/state_widgets.dart';
+import '../providers/mosque_providers.dart';
+import '../widgets/mosque_grid_tile.dart';
+import 'mosque_detail_screen.dart';
+
+class VisitedMosquesScreen extends ConsumerStatefulWidget {
+  const VisitedMosquesScreen({super.key});
+
+  @override
+  ConsumerState<VisitedMosquesScreen> createState() => _VisitedMosquesScreenState();
+}
+
+class _VisitedMosquesScreenState extends ConsumerState<VisitedMosquesScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visitedAsync = ref.watch(visitedMosquesProvider);
+    final controller = ref.read(mosqueControllerProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      body: DesignBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Top Bar Header
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Borgan masjidlarim',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Theme.of(context).colorScheme.surface
+                        : Colors.white.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : Colors.transparent,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14,
+                    ),
+                    cursorColor: Theme.of(context).colorScheme.primary,
+                    decoration: InputDecoration(
+                      hintText: 'Borgan masjidlarimdan qidirish...',
+                      hintStyle: TextStyle(
+                        color: isDark
+                            ? Colors.white60
+                            : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 20),
+                              onPressed: () => _searchController.clear(),
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Content List / Grid
+              Expanded(
+                child: visitedAsync.when(
+                  loading: () => const LoadingView(),
+                  error: (e, _) => ErrorView(
+                    message: e.toString(),
+                    onRetry: () => ref.invalidate(mosqueControllerProvider),
+                  ),
+                  data: (mosques) {
+                    final filtered = mosques.where((m) {
+                      if (_searchQuery.isEmpty) return true;
+                      return m.name.toLowerCase().contains(_searchQuery) ||
+                          m.address.toLowerCase().contains(_searchQuery);
+                    }).toList();
+
+                    if (filtered.isEmpty) {
+                      return EmptyView(
+                        message: _searchQuery.isEmpty
+                            ? 'Hali borgan masjidlaringiz yo\'q. Masjid kartasidagi "Borganman" tugmasini bosing.'
+                            : 'Qidiruv bo\'yicha borgan masjidlaringiz topilmadi.',
+                        icon: Icons.where_to_vote_rounded,
+                      );
+                    }
+
+                    final totalVisits = filtered.fold<int>(0, (sum, m) => sum + m.visitCount);
+
+                    return ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      children: [
+                        // Summary Banner Card
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.verified_rounded, color: Colors.green, size: 28),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Jami ${filtered.length} ta masjid (${totalVisits} marta tashrif)',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Tashrif buyurgan barcha masjidlaringiz va sanalaringiz saqlangan',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+
+                        // Grid Tiles
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: AppSpacing.md,
+                            crossAxisSpacing: AppSpacing.md,
+                            childAspectRatio: 0.8,
+                          ),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final mosque = filtered[index];
+                            return MosqueGridTile(
+                              mosque: mosque,
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => MosqueDetailScreen(mosqueId: mosque.id),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

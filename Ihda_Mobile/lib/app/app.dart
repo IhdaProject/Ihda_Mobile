@@ -13,59 +13,48 @@ class NamazTimingApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsAsync = ref.watch(settingsControllerProvider);
+    final settings = settingsAsync.valueOrNull ?? const AppSettings();
 
-    return settingsAsync.when(
-      loading: () => const MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
-      ),
-      error: (e, _) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(body: Center(child: Text(e.toString()))),
-      ),
-      data: (settings) {
-        final fontScale = settings.fontSize.scale;
+    final fontScale = settings.fontSize.scale;
 
-        final lightTheme = AppTheme.getTheme(
-          isDark: false,
-          fontFamily: settings.fontFamily,
-          fontScale: fontScale,
-        );
-        final darkTheme = AppTheme.getTheme(
-          isDark: true,
-          fontFamily: settings.fontFamily,
-          fontScale: fontScale,
-        );
+    final lightTheme = AppTheme.getTheme(
+      isDark: false,
+      fontFamily: settings.fontFamily,
+      fontScale: fontScale,
+    );
+    final darkTheme = AppTheme.getTheme(
+      isDark: true,
+      fontFamily: settings.fontFamily,
+      fontScale: fontScale,
+    );
 
-        final themeMode = switch (settings.themeMode) {
-          AppThemeMode.system => ThemeMode.system,
-          AppThemeMode.light => ThemeMode.light,
-          AppThemeMode.dark => ThemeMode.dark,
-        };
+    final themeMode = switch (settings.themeMode) {
+      AppThemeMode.system => ThemeMode.system,
+      AppThemeMode.light => ThemeMode.light,
+      AppThemeMode.dark => ThemeMode.dark,
+    };
 
-        return MaterialApp(
-          title: 'Ihda Mobile',
-          debugShowCheckedModeBanner: false,
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          themeMode: themeMode,
-          builder: (context, child) {
-            return MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(fontScale),
-              ),
-              child: IconTheme(
-                data: IconTheme.of(context).copyWith(
-                  size: 24.0 * fontScale,
-                ),
-                child: child ?? const SizedBox.shrink(),
-              ),
-            );
-          },
-          home: const MainShell(),
-          routes: AppRoutes.routes,
+    return MaterialApp(
+      title: 'Ihda Mobile',
+      debugShowCheckedModeBanner: false,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(fontScale),
+          ),
+          child: IconTheme(
+            data: IconTheme.of(context).copyWith(
+              size: 24.0 * fontScale,
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
+      home: const MainShell(),
+      routes: AppRoutes.routes,
     );
   }
 }

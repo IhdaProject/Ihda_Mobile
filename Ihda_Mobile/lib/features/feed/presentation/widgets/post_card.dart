@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../domain/entities/feed_item.dart';
 
 /// Shared card used for Community posts, Hadith/Dua entries, and (in a

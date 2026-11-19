@@ -16,4 +16,8 @@ class MosqueRepositoryImpl implements MosqueRepository {
   @override
   Future<void> setFavorite(String id, bool isFavorite) =>
       _dataSource.setFavorite(id, isFavorite);
+
+  @override
+  Future<void> setVisited(String id, bool isVisited, List<DateTime> visitDates) =>
+      _dataSource.setVisited(id, isVisited, visitDates);
 }

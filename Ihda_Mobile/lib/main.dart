@@ -7,13 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app/app.dart';
 import 'features/tasbih/presentation/providers/tasbih_providers.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = true;
 
-  try {
-    await initializeDateFormatting();
-  } catch (_) {}
+  // Fire date formatting initialization in background without blocking
+  initializeDateFormatting().catchError((_) {});
 
   SharedPreferences? sharedPreferences;
   try {

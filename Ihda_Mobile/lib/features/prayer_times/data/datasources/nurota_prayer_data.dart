@@ -222,7 +222,8 @@ class NurotaPrayerData {
     if (times == null || times.length != 12) return null;
 
     final fajr = DateTime(date.year, date.month, date.day, times[0], times[1]);
-    final sunrise = DateTime(date.year, date.month, date.day, times[2], times[3]);
+    final sunrise = DateTime(date.year, date.month, date.day, times[2], times[3])
+        .subtract(const Duration(minutes: 15));
     final dhuhr = DateTime(date.year, date.month, date.day, times[4], times[5]);
     final asr = DateTime(date.year, date.month, date.day, times[6], times[7]);
     final maghrib = DateTime(date.year, date.month, date.day, times[8], times[9]);

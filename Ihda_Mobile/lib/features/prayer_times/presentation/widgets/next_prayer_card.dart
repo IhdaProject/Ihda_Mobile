@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/utils/app_date_utils.dart';
 import '../../domain/entities/prayer.dart';
 import '../providers/prayer_providers.dart';
@@ -38,40 +37,20 @@ class NextPrayerCard extends StatelessWidget {
   }
 
   PrayerUrgencyLevel _calculateUrgency(PrayerCountdown countdown) {
-    // If it's a non-prayer gap, waiting time, or hideHourglass is true -> NO urgency colors!
+    // If hourglass is hidden or remaining is null -> NO urgency colors!
     if (countdown.hideHourglass) return PrayerUrgencyLevel.normal;
 
     final remaining = countdown.remaining;
-    final next = countdown.next;
-    if (remaining == null || next == null) return PrayerUrgencyLevel.normal;
-
-    // Tomorrow's Fajr (after Xufton at night) -> Normal
-    if (countdown.isTomorrowFajr) return PrayerUrgencyLevel.normal;
+    if (remaining == null) return PrayerUrgencyLevel.normal;
 
     final minutes = remaining.inMinutes;
 
-    // Active Ishroq -> Last 5 mins critical red
-    if (countdown.isIshraqActive) {
-      if (minutes <= 5) return PrayerUrgencyLevel.critical;
-      if (minutes <= 10) return PrayerUrgencyLevel.warning;
-      return PrayerUrgencyLevel.normal;
+    if (minutes <= countdown.redWarningMinutes) {
+      return PrayerUrgencyLevel.critical;
     }
-
-    // Bomdod end window before Sunrise OR Bomdod / Shom:
-    // 25 mins -> Warning (Yellow), Last 15 mins -> Critical (Red)
-    if (next.type == PrayerType.fajr || next.type == PrayerType.sunrise || next.type == PrayerType.maghrib) {
-      if (minutes <= 15) return PrayerUrgencyLevel.critical;
-      if (minutes <= 25) return PrayerUrgencyLevel.warning;
-      return PrayerUrgencyLevel.normal;
+    if (minutes <= countdown.yellowWarningMinutes) {
+      return PrayerUrgencyLevel.warning;
     }
-
-    // Long window main prayers: Dhuhr, Asr, Isha
-    if (next.type == PrayerType.dhuhr || next.type == PrayerType.asr || next.type == PrayerType.isha) {
-      if (minutes <= 15) return PrayerUrgencyLevel.critical;
-      if (minutes <= 25) return PrayerUrgencyLevel.warning;
-      return PrayerUrgencyLevel.normal;
-    }
-
     return PrayerUrgencyLevel.normal;
   }
 
@@ -105,17 +84,6 @@ class NextPrayerCard extends StatelessWidget {
 
     final targetTimeStr = next != null ? AppDateUtils.formatTime(next.time) : '';
 
-    String displayTitle;
-    if (countdown.customLabel != null) {
-      displayTitle = countdown.customLabel!;
-    } else if (countdown.isTomorrowFajr) {
-      displayTitle = 'Bomdod kirishi (Ertangi)';
-    } else if (next != null) {
-      displayTitle = next.type.label;
-    } else {
-      displayTitle = 'Kutish...';
-    }
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(32),
@@ -124,29 +92,29 @@ class NextPrayerCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
         decoration: BoxDecoration(
-          // Rich, elegant glassmorphic translucent gradient (shaffof jiloli oyna)
+          // Translucent glassmorphic container with dynamic urgency color hints
           gradient: LinearGradient(
             colors: urgency == PrayerUrgencyLevel.critical
-                ? [const Color(0xFFE11D48).withOpacity(0.36), const Color(0xFF9F1239).withOpacity(0.24)]
+                ? [const Color(0xFFE11D48).withValues(alpha: 0.36), const Color(0xFF9F1239).withValues(alpha: 0.24)]
                 : (urgency == PrayerUrgencyLevel.warning
-                    ? [const Color(0xFFF59E0B).withOpacity(0.34), const Color(0xFFB45309).withOpacity(0.22)]
-                    : [Colors.black.withOpacity(0.26), Colors.black.withOpacity(0.14)]),
+                    ? [const Color(0xFFF59E0B).withValues(alpha: 0.34), const Color(0xFFB45309).withValues(alpha: 0.22)]
+                    : [Colors.black.withValues(alpha: 0.26), Colors.black.withValues(alpha: 0.14)]),
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(32),
           border: Border.all(
             color: urgency == PrayerUrgencyLevel.critical
-                ? const Color(0xFFFB7185).withOpacity(0.65)
+                ? const Color(0xFFFB7185).withValues(alpha: 0.65)
                 : (urgency == PrayerUrgencyLevel.warning
-                    ? const Color(0xFFFBBF24).withOpacity(0.60)
-                    : Colors.white.withOpacity(0.22)),
+                    ? const Color(0xFFFBBF24).withValues(alpha: 0.60)
+                    : Colors.white.withValues(alpha: 0.22)),
             width: urgency == PrayerUrgencyLevel.critical ? 1.5 : 1.0,
           ),
           boxShadow: urgency == PrayerUrgencyLevel.critical
               ? [
                   BoxShadow(
-                    color: const Color(0xFFE11D48).withOpacity(0.22),
+                    color: const Color(0xFFE11D48).withValues(alpha: 0.22),
                     blurRadius: 18,
                     offset: const Offset(0, 4),
                   ),
@@ -173,7 +141,7 @@ class NextPrayerCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Row(
@@ -192,19 +160,19 @@ class NextPrayerCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Main Content Row: Target Prayer + Live Countdown + Visual Hourglass Ring
+            // Main Content Row: Target Prayer Title + Dynamic Countdown Subtitle + Live Timer + Hourglass Ring
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Target Prayer Name + Exact Time Badge (e.g. Bomdod kirishi — 05:32)
+                      // Target Title & Time Badge
                       Row(
                         children: [
                           Flexible(
                             child: Text(
-                              displayTitle,
+                              countdown.displayTitle,
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -218,7 +186,7 @@ class NextPrayerCard extends StatelessWidget {
                               margin: const EdgeInsets.only(left: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.22),
+                                color: Colors.white.withValues(alpha: 0.22),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -236,9 +204,9 @@ class NextPrayerCard extends StatelessWidget {
                       const SizedBox(height: 6),
 
                       // Countdown Subtitle & Live Timer
-                      const Text(
-                        'Qolgan vaqt:',
-                        style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
+                      Text(
+                        countdown.countdownSubtitle,
+                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 2),
                       if (remaining != null)
@@ -262,12 +230,12 @@ class NextPrayerCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
 
-                // Visual Hourglass & Time Sand Progress Ring Widget (Hidden in Makruh Gap)
+                // Visual Hourglass & Time Sand Progress Ring Widget
                 if (countdown.hideHourglass)
                   Container(
                     padding: EdgeInsets.all(14 * fontScale),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
+                      color: Colors.white.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(

@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_toast.dart';
 import '../../../../shared/widgets/design_background.dart';
 import '../../domain/entities/notification_settings.dart';
 import '../providers/notification_providers.dart';
+import '../providers/notification_scheduler.dart';
 
 class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -108,11 +109,16 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
 
   Future<void> _testSound(PrayerNotificationConfig prayer) async {
     final ds = ref.read(notificationDataSourceProvider);
+    final title = prayer.formatTitle(prayer.name, '12:30');
+    final body = prayer.formatBody(prayer.name, '12:30');
+
     await ds.showImmediateTestNotification(
-      title: '${prayer.name} namozi vaqti bo\'ldi (Sinov)',
-      body: 'Hozir ${prayer.name} namozining bildirishnoma va tovush sinovi.',
+      title: '$title (Sinov)',
+      body: body,
       soundType: prayer.sound,
       customAudioPath: prayer.customAudioName,
+      targetRoute: prayer.targetRoute,
+      payload: '{"prayerId":"${prayer.id}","test":true}',
     );
 
     if (mounted) {
@@ -122,6 +128,108 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
         icon: Icons.notifications_active_rounded,
       );
     }
+  }
+
+  Future<void> _test10SecNotification(PrayerNotificationConfig prayer) async {
+    final ds = ref.read(notificationDataSourceProvider);
+    final title = prayer.formatTitle(prayer.name, '12:30');
+    final body = prayer.formatBody(prayer.name, '12:30');
+
+    await ds.schedule10SecondTestNotification(
+      title: '⏱️ 10-Soniyali Sinov: $title',
+      body: '$body (10 soniyadan so\'ng kelgan eslatma)',
+      soundType: prayer.sound,
+      customAudioPath: prayer.customAudioName,
+      targetRoute: prayer.targetRoute,
+      payload: '{"prayerId":"${prayer.id}","test10s":true}',
+    );
+
+    if (mounted) {
+      showAppToast(
+        context,
+        '10 soniyadan so\'ng sinov eslatmasi keladi ⏳',
+        icon: Icons.timer_rounded,
+      );
+    }
+  }
+
+  Future<void> _rescheduleAll() async {
+    await rescheduleAllReminders(ref);
+    if (mounted) {
+      showAppToast(
+        context,
+        'Barcha namoz eslatmalari qayta rejalashtirildi! 🔄',
+        icon: Icons.sync_rounded,
+      );
+    }
+  }
+
+  void _showEditTemplatesDialog(PrayerNotificationConfig prayer, bool isMainPrayer) {
+    final titleController = TextEditingController(text: prayer.titleTemplate ?? '');
+    final bodyController = TextEditingController(text: prayer.bodyTemplate ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${prayer.name} Matn Sozlamalari'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Mavjud o\'zgaruvchilar: {prayerName}, {time}',
+                style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Sarlavha (Title)',
+                  hintText: '{prayerName} kirishi (Namoz vaqti)',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: bodyController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Matn (Body)',
+                  hintText: 'Hozir {prayerName} vaqti kirdi. Soat {time}',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final notifier = ref.read(detailedNotificationSettingsProvider.notifier);
+              if (isMainPrayer) {
+                notifier.setMainPrayerTemplates(
+                  prayer.id,
+                  titleTemplate: titleController.text.trim(),
+                  bodyTemplate: bodyController.text.trim(),
+                );
+              } else {
+                notifier.setNaflPrayerTemplates(
+                  prayer.id,
+                  titleTemplate: titleController.text.trim(),
+                  bodyTemplate: bodyController.text.trim(),
+                );
+              }
+              Navigator.of(ctx).pop();
+              showAppToast(context, 'Matn sozlamalari saqlandi ✅');
+            },
+            child: const Text('Saqlash'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -150,7 +258,11 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    const SizedBox(width: 48),
+                    IconButton(
+                      icon: const Icon(Icons.sync_rounded),
+                      tooltip: 'Qayta rejalashtirish',
+                      onPressed: _rescheduleAll,
+                    ),
                   ],
                 ),
               ),
@@ -225,6 +337,37 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                     ),
                     const SizedBox(height: AppSpacing.md),
 
+                    // Reschedule & Quick Test Card
+                    Card(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.sync_rounded, size: 18),
+                                label: const Text('Barcha Eslatmalarni Yangilash', style: TextStyle(fontSize: 12)),
+                                onPressed: _rescheduleAll,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.timer_rounded, size: 18),
+                                label: const Text('10s Sinov', style: TextStyle(fontSize: 12)),
+                                onPressed: () {
+                                  final firstMain = settings.mainPrayers.firstWhere((p) => p.enabled, orElse: () => settings.mainPrayers.first);
+                                  _test10SecNotification(firstMain);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
                     // Global Switch Card
                     Card(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
@@ -242,7 +385,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
 
                     if (settings.globalEnabled) ...[
                       // Main Prayer Times Section
-                      _SectionTitle('Farz namoz vaqtlari (6 vaqt)'),
+                      const _SectionTitle('Farz namoz vaqtlari (6 vaqt)'),
                       const SizedBox(height: AppSpacing.xs),
                       for (final prayer in settings.mainPrayers)
                         _PrayerNotificationCard(
@@ -257,14 +400,16 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                             }
                           },
                           onCustomAudioTap: () => _pickCustomAudioFile(prayer, true),
-                          onOffsetChanged: (offset) => notifier.setMainPrayerOffset(prayer.id, offset),
+                          onOffsetSecsChanged: (secs) => notifier.setMainPrayerOffsetSeconds(prayer.id, secs),
                           onTestSound: () => _testSound(prayer),
+                          onTest10s: () => _test10SecNotification(prayer),
+                          onEditTemplates: () => _showEditTemplatesDialog(prayer, true),
                         ),
 
                       const SizedBox(height: AppSpacing.lg),
 
                       // Nafl Prayers Section
-                      _SectionTitle('Nafil namoz va eslatmalar (Ishroq, Zuho, Tahajjud)'),
+                      const _SectionTitle('Nafil namoz va eslatmalar (Ishroq, Zuho, Tahajjud)'),
                       const SizedBox(height: AppSpacing.xs),
                       for (final prayer in settings.naflPrayers)
                         _PrayerNotificationCard(
@@ -279,14 +424,16 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                             }
                           },
                           onCustomAudioTap: () => _pickCustomAudioFile(prayer, false),
-                          onOffsetChanged: (offset) => notifier.setNaflPrayerOffset(prayer.id, offset),
+                          onOffsetSecsChanged: (secs) => notifier.setNaflPrayerOffsetSeconds(prayer.id, secs),
                           onTestSound: () => _testSound(prayer),
+                          onTest10s: () => _test10SecNotification(prayer),
+                          onEditTemplates: () => _showEditTemplatesDialog(prayer, false),
                         ),
 
                       const SizedBox(height: AppSpacing.lg),
 
                       // Non-Prayer Notifications Section
-                      _SectionTitle('Ilova va Hamjamiyat xabarlari'),
+                      const _SectionTitle('Ilova va Hamjamiyat xabarlari'),
                       const SizedBox(height: AppSpacing.xs),
                       Card(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
@@ -348,8 +495,10 @@ class _PrayerNotificationCard extends StatelessWidget {
   final ValueChanged<bool> onToggle;
   final ValueChanged<NotificationSoundType> onSoundTypePicked;
   final VoidCallback onCustomAudioTap;
-  final ValueChanged<int> onOffsetChanged;
+  final ValueChanged<int> onOffsetSecsChanged;
   final VoidCallback onTestSound;
+  final VoidCallback onTest10s;
+  final VoidCallback onEditTemplates;
 
   const _PrayerNotificationCard({
     required this.prayer,
@@ -357,8 +506,10 @@ class _PrayerNotificationCard extends StatelessWidget {
     required this.onToggle,
     required this.onSoundTypePicked,
     required this.onCustomAudioTap,
-    required this.onOffsetChanged,
+    required this.onOffsetSecsChanged,
     required this.onTestSound,
+    required this.onTest10s,
+    required this.onEditTemplates,
   });
 
   String _getFileName(String? path) {
@@ -369,11 +520,15 @@ class _PrayerNotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final offsetText = prayer.offsetMinutes == 0
-        ? 'Vaqtida (0 daq)'
-        : prayer.offsetMinutes > 0
-            ? '+${prayer.offsetMinutes} daqiqa kechroq'
-            : '${prayer.offsetMinutes} daqiqa oldinroq';
+    final offsetSecs = prayer.offsetSeconds;
+    final String offsetText;
+    if (offsetSecs == 0) {
+      offsetText = '0s (Vaqtida)';
+    } else if (offsetSecs > 0) {
+      offsetText = '+$offsetSecs soniya';
+    } else {
+      offsetText = '$offsetSecs soniya';
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -397,13 +552,20 @@ class _PrayerNotificationCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
-                if (prayer.enabled)
+                if (prayer.enabled) ...[
+                  IconButton(
+                    icon: const Icon(Icons.edit_note_rounded, size: 22),
+                    tooltip: 'Matnni tahrirlash',
+                    color: Theme.of(context).colorScheme.primary,
+                    onPressed: onEditTemplates,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.volume_up_rounded, size: 20),
-                    tooltip: 'Tovushni sinash',
+                    tooltip: 'Hozir sinash',
                     color: Theme.of(context).colorScheme.primary,
                     onPressed: onTestSound,
                   ),
+                ],
                 Switch(
                   value: prayer.enabled,
                   onChanged: onToggle,
@@ -423,7 +585,7 @@ class _PrayerNotificationCard extends StatelessWidget {
                       child: Row(
                         children: [
                           ChoiceChip(
-                            label: Text(NotificationSoundType.defaultSound.label, style: const TextStyle(fontSize: 11)),
+                            label: const Text('Standart', style: TextStyle(fontSize: 11)),
                             selected: prayer.sound == NotificationSoundType.defaultSound,
                             onSelected: (_) => onSoundTypePicked(NotificationSoundType.defaultSound),
                             visualDensity: VisualDensity.compact,
@@ -431,9 +593,25 @@ class _PrayerNotificationCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           ChoiceChip(
-                            label: Text(NotificationSoundType.azaan.label, style: const TextStyle(fontSize: 11)),
+                            label: const Text('Azon', style: TextStyle(fontSize: 11)),
                             selected: prayer.sound == NotificationSoundType.azaan,
                             onSelected: (_) => onSoundTypePicked(NotificationSoundType.azaan),
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          const SizedBox(width: 4),
+                          ChoiceChip(
+                            label: const Text('Qisqa', style: TextStyle(fontSize: 11)),
+                            selected: prayer.sound == NotificationSoundType.shortChime,
+                            onSelected: (_) => onSoundTypePicked(NotificationSoundType.shortChime),
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          const SizedBox(width: 4),
+                          ChoiceChip(
+                            label: const Text('Ovozsiz', style: TextStyle(fontSize: 11)),
+                            selected: prayer.sound == NotificationSoundType.silent,
+                            onSelected: (_) => onSoundTypePicked(NotificationSoundType.silent),
                             visualDensity: VisualDensity.compact,
                             padding: const EdgeInsets.symmetric(horizontal: 6),
                           ),
@@ -445,7 +623,7 @@ class _PrayerNotificationCard extends StatelessWidget {
                                       prayer.customAudioName != null &&
                                       prayer.customAudioName!.isNotEmpty
                                   ? _getFileName(prayer.customAudioName)
-                                  : NotificationSoundType.customDevice.label,
+                                  : 'Fayldan',
                               style: const TextStyle(fontSize: 11),
                             ),
                             selected: prayer.sound == NotificationSoundType.customDevice,
@@ -460,12 +638,12 @@ class _PrayerNotificationCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              // Time offset adjuster (-+ minutlarda)
+              // Time offset adjuster (-+ soniyalarda)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Vaqtni sozlash:',
+                    'Vaqtni sozlash (sekund):',
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                   Row(
@@ -476,8 +654,8 @@ class _PrayerNotificationCard extends StatelessWidget {
                         color: Theme.of(context).colorScheme.primary,
                         visualDensity: VisualDensity.compact,
                         onPressed: () {
-                          if (prayer.offsetMinutes > -30) {
-                            onOffsetChanged(prayer.offsetMinutes - 1);
+                          if (prayer.offsetSeconds > -1800) {
+                            onOffsetSecsChanged(prayer.offsetSeconds - 30);
                           }
                         },
                       ),
@@ -501,8 +679,8 @@ class _PrayerNotificationCard extends StatelessWidget {
                         color: Theme.of(context).colorScheme.primary,
                         visualDensity: VisualDensity.compact,
                         onPressed: () {
-                          if (prayer.offsetMinutes < 30) {
-                            onOffsetChanged(prayer.offsetMinutes + 1);
+                          if (prayer.offsetSeconds < 1800) {
+                            onOffsetSecsChanged(prayer.offsetSeconds + 30);
                           }
                         },
                       ),

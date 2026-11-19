@@ -148,7 +148,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         final mosque = filtered[index];
                         return MosqueGridTile(
                           mosque: mosque,
-                          onToggleFavorite: () => controller.toggleFavorite(mosque.id),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => MosqueDetailScreen(mosqueId: mosque.id)),
                           ),

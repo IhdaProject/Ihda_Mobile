@@ -304,8 +304,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   onTap: () => Navigator.of(context).push(
                                     MaterialPageRoute(builder: (_) => MosqueDetailScreen(mosqueId: mosque.id)),
                                   ),
-                                  onToggleFavorite: () =>
-                                      ref.read(mosqueControllerProvider.notifier).toggleFavorite(mosque.id),
                                 );
                               },
                             ),

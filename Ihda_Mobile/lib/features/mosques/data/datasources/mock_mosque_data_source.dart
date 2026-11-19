@@ -15,6 +15,11 @@ class MockMosqueDataSource implements MosqueDataSource {
       latitude: 41.3208,
       longitude: 69.2652,
       isFavorite: true,
+      isVisited: true,
+      visitDates: [
+        DateTime.now().subtract(const Duration(days: 12)),
+        DateTime.now().subtract(const Duration(days: 2)),
+      ],
       schedule: const [
         PrayerScheduleRow(label: 'Bomdod', azon: '06:14', iqama: '06:40'),
         PrayerScheduleRow(label: 'Peshin', azon: '12:50', iqama: '13:05'),
@@ -32,6 +37,10 @@ class MockMosqueDataSource implements MosqueDataSource {
       latitude: 41.3325,
       longitude: 69.2384,
       isFavorite: true,
+      isVisited: true,
+      visitDates: [
+        DateTime.now().subtract(const Duration(days: 5)),
+      ],
       schedule: const [
         PrayerScheduleRow(label: 'Bomdod', azon: '06:10', iqama: '06:35'),
         PrayerScheduleRow(label: 'Peshin', azon: '12:45', iqama: '13:00'),
@@ -108,13 +117,11 @@ class MockMosqueDataSource implements MosqueDataSource {
 
   @override
   Future<List<Mosque>> getNearbyMosques() async {
-    await Future.delayed(const Duration(milliseconds: 400));
     return List.unmodifiable(_mosques);
   }
 
   @override
   Future<Mosque> getMosqueById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 200));
     return _mosques.firstWhere((m) => m.id == id);
   }
 
@@ -123,6 +130,17 @@ class MockMosqueDataSource implements MosqueDataSource {
     final index = _mosques.indexWhere((m) => m.id == id);
     if (index != -1) {
       _mosques[index] = _mosques[index].copyWith(isFavorite: isFavorite);
+    }
+  }
+
+  @override
+  Future<void> setVisited(String id, bool isVisited, List<DateTime> visitDates) async {
+    final index = _mosques.indexWhere((m) => m.id == id);
+    if (index != -1) {
+      _mosques[index] = _mosques[index].copyWith(
+        isVisited: isVisited,
+        visitDates: visitDates,
+      );
     }
   }
 }

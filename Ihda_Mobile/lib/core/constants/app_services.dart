@@ -8,6 +8,7 @@ import '../../features/feed/presentation/screens/hadith_duas_screen.dart';
 import '../../features/finance/presentation/screens/finance_screen.dart';
 import '../../features/important_dates/presentation/screens/important_dates_screen.dart';
 import '../../features/location/presentation/screens/region_selection_screen.dart';
+import '../../features/mosques/presentation/screens/visited_mosques_screen.dart';
 import '../../features/qazo/presentation/screens/qazo_screen.dart';
 import '../../features/qibla/presentation/screens/qibla_screen.dart';
 import '../../features/quiz/presentation/screens/quiz_question_screen.dart';
@@ -73,6 +74,12 @@ List<ServiceItem> getAppServices() => const [
         labelKey: "Sanalar",
         icon: Icons.event_available_rounded,
         targetScreen: ImportantDatesScreen(),
+      ),
+      ServiceItem(
+        id: 'visited_mosques',
+        labelKey: 'Borganlarim',
+        icon: Icons.where_to_vote_rounded,
+        targetScreen: VisitedMosquesScreen(),
       ),
       ServiceItem(
         id: 'hadith',

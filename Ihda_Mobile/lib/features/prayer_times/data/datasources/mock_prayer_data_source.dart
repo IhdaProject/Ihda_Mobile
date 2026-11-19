@@ -19,7 +19,6 @@ class MockPrayerDataSource implements PrayerDataSource {
 
   @override
   Future<PrayerDay> getTodayPrayerTimes({CalculationMethod? method}) async {
-    await Future.delayed(const Duration(milliseconds: 200));
     final now = DateTime.now();
     final nurotaDay = NurotaPrayerData.getPrayerDayForNurota(now);
     if (nurotaDay != null) return nurotaDay;
@@ -28,7 +27,6 @@ class MockPrayerDataSource implements PrayerDataSource {
 
   @override
   Future<List<PrayerDay>> getPrayerCalendar(DateTime month, {CalculationMethod? method}) async {
-    await Future.delayed(const Duration(milliseconds: 300));
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
     return List.generate(
       daysInMonth,
