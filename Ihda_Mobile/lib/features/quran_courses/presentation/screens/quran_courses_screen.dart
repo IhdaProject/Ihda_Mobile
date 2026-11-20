@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/responsive_action_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -84,12 +85,18 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                   decoration: BoxDecoration(
                     color: isDark
                         ? Theme.of(context).colorScheme.surface
-                        : Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                        : Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.08),
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                     border: Border.all(
                       color: isDark
                           ? Colors.white.withOpacity(0.12)
-                          : Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                          : Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.15),
                     ),
                   ),
                   child: Row(
@@ -110,7 +117,8 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                               color: _selectedTabIndex == 0
                                   ? Theme.of(context).colorScheme.primary
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill),
                             ),
                             child: Text(
                               "O'quv Markazlari",
@@ -121,7 +129,9 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                                     ? Colors.white
                                     : (isDark
                                         ? Colors.white70
-                                        : Theme.of(context).colorScheme.onSurfaceVariant),
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant),
                               ),
                             ),
                           ),
@@ -144,7 +154,8 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                               color: _selectedTabIndex == 1
                                   ? Theme.of(context).colorScheme.primary
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill),
                             ),
                             child: Text(
                               "Ariza Holati",
@@ -155,7 +166,9 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                                     ? Colors.white
                                     : (isDark
                                         ? Colors.white70
-                                        : Theme.of(context).colorScheme.onSurfaceVariant),
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant),
                               ),
                             ),
                           ),
@@ -174,17 +187,20 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                   children: [
                     // View 0: Markazlar va Qidiruv
                     ListView(
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                       children: [
                         // Dark Mode Adaptive Search Bar
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md),
                           child: Container(
                             decoration: BoxDecoration(
                               color: isDark
                                   ? Theme.of(context).colorScheme.surface
                                   : Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill),
                               border: Border.all(
                                 color: isDark
                                     ? Colors.white.withOpacity(0.12)
@@ -192,7 +208,8 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                                  color: Colors.black
+                                      .withOpacity(isDark ? 0.2 : 0.04),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -201,19 +218,27 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                             child: TextField(
                               controller: _searchController,
                               style: TextStyle(
-                                color: isDark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                                color: isDark
+                                    ? Colors.white
+                                    : Theme.of(context).colorScheme.onSurface,
                                 fontSize: 13,
                               ),
-                              cursorColor: Theme.of(context).colorScheme.primary,
+                              cursorColor:
+                                  Theme.of(context).colorScheme.primary,
                               onChanged: (val) {
-                                ref.read(courseSearchQueryProvider.notifier).state = val;
+                                ref
+                                    .read(courseSearchQueryProvider.notifier)
+                                    .state = val;
                               },
                               decoration: InputDecoration(
                                 hintText: 'Markaz yoki kurs nomini qidirish...',
                                 hintStyle: TextStyle(
                                   color: isDark
                                       ? Colors.white60
-                                      : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant
+                                          .withOpacity(0.7),
                                   fontSize: 13,
                                 ),
                                 prefixIcon: Icon(
@@ -222,15 +247,20 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                                 ),
                                 suffixIcon: _searchController.text.isNotEmpty
                                     ? IconButton(
-                                        icon: const Icon(Icons.clear_rounded, size: 18),
+                                        icon: const Icon(Icons.clear_rounded,
+                                            size: 18),
                                         onPressed: () {
                                           _searchController.clear();
-                                          ref.read(courseSearchQueryProvider.notifier).state = "";
+                                          ref
+                                              .read(courseSearchQueryProvider
+                                                  .notifier)
+                                              .state = "";
                                         },
                                       )
                                     : null,
                                 border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
                               ),
                             ),
                           ),
@@ -239,7 +269,8 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
 
                         // Location Selectors Header
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md),
                           child: Row(
                             children: [
                               Icon(
@@ -248,12 +279,16 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 6),
-                              Text(
+                              Flexible(
+                                  child: Text(
                                 'Hudud bo\'yicha saralash:',
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
-                              ),
+                              )),
                             ],
                           ),
                         ),
@@ -262,7 +297,8 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                         // Filter Dropdowns Row (Davlat, Viloyat, Tuman)
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md),
                           child: Row(
                             children: [
                               // Country Dropdown
@@ -271,9 +307,15 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                                 icon: Icons.public_rounded,
                                 items: MockQuranCoursesDataSource.countries,
                                 onSelected: (val) {
-                                  ref.read(selectedCountryProvider.notifier).state = val;
-                                  ref.read(selectedRegionProvider.notifier).state = "Barcha viloyatlar";
-                                  ref.read(selectedDistrictProvider.notifier).state = "Barcha tumanlar";
+                                  ref
+                                      .read(selectedCountryProvider.notifier)
+                                      .state = val;
+                                  ref
+                                      .read(selectedRegionProvider.notifier)
+                                      .state = "Barcha viloyatlar";
+                                  ref
+                                      .read(selectedDistrictProvider.notifier)
+                                      .state = "Barcha tumanlar";
                                 },
                               ),
                               const SizedBox(width: 8),
@@ -284,8 +326,12 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                                 icon: Icons.map_rounded,
                                 items: availableRegions,
                                 onSelected: (val) {
-                                  ref.read(selectedRegionProvider.notifier).state = val;
-                                  ref.read(selectedDistrictProvider.notifier).state = "Barcha tumanlar";
+                                  ref
+                                      .read(selectedRegionProvider.notifier)
+                                      .state = val;
+                                  ref
+                                      .read(selectedDistrictProvider.notifier)
+                                      .state = "Barcha tumanlar";
                                 },
                               ),
                               const SizedBox(width: 8),
@@ -296,7 +342,9 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                                 icon: Icons.location_city_rounded,
                                 items: availableDistricts,
                                 onSelected: (val) {
-                                  ref.read(selectedDistrictProvider.notifier).state = val;
+                                  ref
+                                      .read(selectedDistrictProvider.notifier)
+                                      .state = val;
                                 },
                               ),
                             ],
@@ -306,10 +354,14 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
 
                         // Centers Count Header
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md),
                           child: Text(
                             'Mavjud o\'quv maskanlari (${centers.length})',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
@@ -331,7 +383,8 @@ class _QuranCoursesScreenState extends ConsumerState<QuranCoursesScreen> {
                         else
                           for (final center in centers) ...[
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md, vertical: 6),
                               child: _CenterCard(center: center),
                             ),
                           ],
@@ -388,21 +441,24 @@ class _FilterChipDropdown extends StatelessWidget {
               const SizedBox(height: 12),
               for (final item in items)
                 ListTile(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   tileColor: item == label
                       ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
                       : Colors.transparent,
                   title: Text(
                     item,
                     style: TextStyle(
-                      fontWeight: item == label ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          item == label ? FontWeight.bold : FontWeight.normal,
                       color: item == label
                           ? Theme.of(context).colorScheme.primary
                           : (isDark ? Colors.white : Colors.black87),
                     ),
                   ),
                   trailing: item == label
-                      ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
+                      ? Icon(Icons.check_rounded,
+                          color: Theme.of(context).colorScheme.primary)
                       : null,
                   onTap: () {
                     onSelected(item);
@@ -440,7 +496,8 @@ class _FilterChipDropdown extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.arrow_drop_down_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+            Icon(Icons.arrow_drop_down_rounded,
+                size: 18, color: Theme.of(context).colorScheme.primary),
           ],
         ),
       ),
@@ -480,7 +537,10 @@ class _CenterCard extends StatelessWidget {
                     width: 48 * fontScale,
                     height: 48 * fontScale,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -496,17 +556,22 @@ class _CenterCard extends StatelessWidget {
                       children: [
                         Text(
                           center.name,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.secondary.withOpacity(0.12),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondary
+                                .withOpacity(0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -526,7 +591,9 @@ class _CenterCard extends StatelessWidget {
               const Divider(height: 20),
               Row(
                 children: [
-                  Icon(Icons.place_outlined, size: 14 * fontScale, color: Theme.of(context).colorScheme.primary),
+                  Icon(Icons.place_outlined,
+                      size: 14 * fontScale,
+                      color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -539,26 +606,29 @@ class _CenterCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ResponsiveActionRow(
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.menu_book_rounded, size: 14 * fontScale, color: AppColors.accent),
+                      Icon(Icons.menu_book_rounded,
+                          size: 14 * fontScale, color: AppColors.accent),
                       const SizedBox(width: 4),
-                      Text(
+                      Flexible(
+                          child: Text(
                         '${center.courses.length} ta o\'quv kursi mavjud',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: AppColors.accent,
                         ),
-                      ),
+                      )),
                     ],
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
@@ -568,12 +638,14 @@ class _CenterCard extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => QuranCenterDetailScreen(center: center),
+                          builder: (_) =>
+                              QuranCenterDetailScreen(center: center),
                         ),
                       );
                     },
                     child: const Text('Kurslarni ko\'rish',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

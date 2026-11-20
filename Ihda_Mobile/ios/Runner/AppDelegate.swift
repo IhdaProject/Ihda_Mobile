@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import UserNotifications
 import YandexMapsMobile
 
 @main
@@ -10,6 +11,7 @@ import YandexMapsMobile
   ) -> Bool {
     // TODO: Replace 'YOUR_API_KEY' with your actual Yandex Maps API Key
     YMKMapKit.setApiKey("7f9b9650-fcf6-4194-8005-1b2c65deba21")
+    UNUserNotificationCenter.current().delegate = self
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

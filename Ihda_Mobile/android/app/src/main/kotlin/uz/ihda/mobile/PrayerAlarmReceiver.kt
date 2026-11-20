@@ -26,8 +26,11 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        if (!androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            throw SecurityException("Bildirishnomalarga ruxsat berilmagan")
+        }
         // Create distinct channel ID per soundKey to allow immediate sound changes on Android 8+
-        val channelId = "prayer_channel_$soundKey"
+        val channelId = "prayer_channel_$soundKey" + if (soundKey == "custom") "_${customAudioPath.orEmpty().hashCode()}" else ""
         val channelName = when (soundKey) {
             "azan" -> "Namoz Vaqti - Azon Ovozi"
             "short_chime" -> "Namoz Vaqti - Qisqa Tovush"
@@ -55,7 +58,17 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             }
             "custom" -> {
                 if (!customAudioPath.isNullOrEmpty()) {
-                    Uri.parse(customAudioPath)
+                    if (customAudioPath.startsWith("content://")) Uri.parse(customAudioPath)
+                    else {
+                        val source = java.io.File(Uri.parse(customAudioPath).path ?: customAudioPath)
+                        require(source.isFile) { "Audio fayli topilmadi" }
+                        val directory = java.io.File(context.filesDir, "notification_audio").apply { mkdirs() }
+                        val destination = java.io.File(directory, "${source.absolutePath.hashCode()}_${source.name}")
+                        if (!destination.exists()) source.copyTo(destination)
+                        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.notification_audio", destination)
+                        context.grantUriPermission("com.android.systemui", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        uri
+                    }
                 } else {
                     RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 }
@@ -121,6 +134,10 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             builder.setSound(soundUri)
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            notificationManager.getNotificationChannel(channelId)?.importance == NotificationManager.IMPORTANCE_NONE) {
+            throw SecurityException("Bildirishnoma kanali o‘chirilgan")
+        }
         notificationManager.notify(id, builder.build())
 
         // Clean up executed alarm from storage

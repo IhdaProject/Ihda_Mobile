@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="Ihda Mobile"
         android:name="${applicationName}"
@@ -40,6 +41,12 @@
             android:name="com.yandex.android.runtime.key"
             android:value="7f9b9650-fcf6-4194-8005-1b2c65deba21" />
 
+        <provider android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.notification_audio"
+            android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/notification_audio_paths" />
+        </provider>
         <!-- Prayer Alarms BroadcastReceiver -->
         <receiver
             android:name=".PrayerAlarmReceiver"

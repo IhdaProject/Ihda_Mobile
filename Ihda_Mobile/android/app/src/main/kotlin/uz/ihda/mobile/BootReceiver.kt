@@ -52,7 +52,9 @@ class BootReceiver : BroadcastReceiver() {
         val showIntent = Intent(context, MainActivity::class.java)
         val showPendingIntent = PendingIntent.getActivity(context, alarm.id, showIntent, pendingFlags)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarm.scheduledTimeMs, pendingIntent)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val alarmClockInfo = AlarmManager.AlarmClockInfo(alarm.scheduledTimeMs, showPendingIntent)
             alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
         } else {
