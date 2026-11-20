@@ -53,7 +53,7 @@
 	<string>Qibla yo'nalishini aniqlash uchun sizning joylashuvingiz kerak.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>UILuanchStoryboardName</key>
+	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>

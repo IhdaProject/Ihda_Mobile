@@ -53,6 +53,7 @@ class MainActivity : FlutterActivity() {
         methodChannel = channel
 
         channel.setMethodCallHandler { call: MethodCall, result: MethodChannel.Result ->
+            try {
             when (call.method) {
                 "scheduleAlarm" -> {
                     val id = call.argument<Int>("id") ?: 0
@@ -117,7 +118,10 @@ class MainActivity : FlutterActivity() {
                         putExtra("targetRoute", targetRoute)
                         putExtra("payload", payload)
                     }
-                    sendBroadcast(intent)
+                    if (!androidx.core.app.NotificationManagerCompat.from(this).areNotificationsEnabled()) {
+                        throw SecurityException("Bildirishnomalarga ruxsat berilmagan")
+                    }
+                    PrayerAlarmReceiver().onReceive(this, intent)
                     result.success(true)
                 }
 
@@ -137,6 +141,9 @@ class MainActivity : FlutterActivity() {
                 }
 
                 else -> result.notImplemented()
+            }
+            } catch (error: Exception) {
+                result.error("NOTIFICATION_ERROR", error.message, null)
             }
         }
     }
@@ -164,7 +171,9 @@ class MainActivity : FlutterActivity() {
         val showIntent = Intent(this, MainActivity::class.java)
         val showPendingIntent = PendingIntent.getActivity(this, alarm.id, showIntent, pendingFlags)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarm.scheduledTimeMs, pendingIntent)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val alarmClockInfo = AlarmManager.AlarmClockInfo(alarm.scheduledTimeMs, showPendingIntent)
             alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
         } else {

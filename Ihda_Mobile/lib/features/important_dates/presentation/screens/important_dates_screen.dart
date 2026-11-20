@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/responsive_action_row.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -68,16 +69,23 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: ChoiceChip(
-                          label: Text(cat, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          label: Text(cat,
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold)),
                           selected: _selectedCategory == cat,
                           selectedColor: Theme.of(context).colorScheme.primary,
                           labelStyle: TextStyle(
                             color: _selectedCategory == cat
                                 ? Colors.white
-                                : (isDark ? Colors.white70 : Theme.of(context).colorScheme.onSurface),
+                                : (isDark
+                                    ? Colors.white70
+                                    : Theme.of(context).colorScheme.onSurface),
                           ),
-                          backgroundColor: isDark ? Theme.of(context).colorScheme.surface : Colors.white.withOpacity(0.8),
-                          onSelected: (_) => setState(() => _selectedCategory = cat),
+                          backgroundColor: isDark
+                              ? Theme.of(context).colorScheme.surface
+                              : Colors.white.withOpacity(0.8),
+                          onSelected: (_) =>
+                              setState(() => _selectedCategory = cat),
                         ),
                       ),
                     ],
@@ -89,9 +97,11 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
               // List of Important Dates
               Expanded(
                 child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xl),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.md,
+                      AppSpacing.xs, AppSpacing.md, AppSpacing.xl),
                   itemCount: filteredDates.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
                     final item = filteredDates[index];
                     final isToday = item.countdownLabel == 'Bugun!';
@@ -99,17 +109,22 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
                     return Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: isDark ? Theme.of(context).colorScheme.surface : Colors.white.withOpacity(0.9),
+                        color: isDark
+                            ? Theme.of(context).colorScheme.surface
+                            : Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: isToday
                               ? Theme.of(context).colorScheme.primary
-                              : (isDark ? Colors.white.withOpacity(0.12) : Colors.transparent),
+                              : (isDark
+                                  ? Colors.white.withOpacity(0.12)
+                                  : Colors.transparent),
                           width: isToday ? 1.5 : 1,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                            color:
+                                Colors.black.withOpacity(isDark ? 0.2 : 0.05),
                             blurRadius: 15,
                             offset: const Offset(0, 5),
                           ),
@@ -123,7 +138,10 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
                               Container(
                                 padding: EdgeInsets.all(10 * fontScale),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withOpacity(0.12),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -139,7 +157,10 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
                                   children: [
                                     Text(
                                       item.title,
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
                                             fontWeight: FontWeight.bold,
                                           ),
                                     ),
@@ -148,7 +169,9 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
                                       'Hijriy: ${item.hijriDate}',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: isDark ? Colors.white60 : Colors.grey,
+                                        color: isDark
+                                            ? Colors.white60
+                                            : Colors.grey,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -156,38 +179,53 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: isToday
                                       ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.secondary.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .secondary
+                                          .withOpacity(0.15),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.pill),
                                 ),
                                 child: Text(
                                   item.countdownLabel,
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: isToday ? Colors.white : Theme.of(context).colorScheme.secondary,
+                                    color: isToday
+                                        ? Colors.white
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .secondary,
                                   ),
                                 ),
                               ),
                             ],
                           ),
                           const Divider(height: 20),
-                          Row(
+                          ResponsiveActionRow(
                             children: [
-                              Icon(Icons.calendar_month_rounded, size: 14 * fontScale, color: Theme.of(context).colorScheme.primary),
+                              Icon(Icons.calendar_month_rounded,
+                                  size: 14 * fontScale,
+                                  color: Theme.of(context).colorScheme.primary),
                               const SizedBox(width: 6),
                               Text(
                                 item.gregorianDate,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13),
                               ),
-                              const Spacer(),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withOpacity(0.08),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -195,7 +233,8 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -204,7 +243,10 @@ class _ImportantDatesScreenState extends State<ImportantDatesScreen> {
                           const SizedBox(height: 8),
                           Text(
                             item.description,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
                                   fontSize: 12.5,
                                   height: 1.4,
                                 ),

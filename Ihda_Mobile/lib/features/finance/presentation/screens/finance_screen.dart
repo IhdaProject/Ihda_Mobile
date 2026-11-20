@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/responsive_action_row.dart';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -23,8 +24,10 @@ class FinanceScreen extends ConsumerStatefulWidget {
 
 class _FinanceScreenState extends ConsumerState<FinanceScreen> {
   String _filter = 'all'; // 'all', 'expense', 'income'
-  bool _showChartInHeader = false; // false: Balans + Kirim/Chiqimlar, true: Grafik + Taqsimot Tavsiyalari
-  int _selectedChartType = 0; // 0: Doiraviy (Category Donut), 1: Sana bo'yicha chiziqli (Date Line Chart)
+  bool _showChartInHeader =
+      false; // false: Balans + Kirim/Chiqimlar, true: Grafik + Taqsimot Tavsiyalari
+  int _selectedChartType =
+      0; // 0: Doiraviy (Category Donut), 1: Sana bo'yicha chiziqli (Date Line Chart)
 
   void _openAddModal(BuildContext context, {required bool isExpense}) {
     showBlurredBottomSheet(
@@ -107,7 +110,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
             children: [
               // Header Navigation Bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                 child: Row(
                   children: [
                     IconButton(
@@ -128,11 +132,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                         onTap: state.isSyncing ? null : _handleSync,
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.amber.withOpacity(0.18),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                            border: Border.all(
+                                color: Colors.amber.withOpacity(0.5)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -141,10 +147,12 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                 const SizedBox(
                                   width: 14,
                                   height: 14,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.amber),
                                 )
                               else
-                                const Icon(Icons.cloud_upload_rounded, color: Colors.amber, size: 16),
+                                const Icon(Icons.cloud_upload_rounded,
+                                    color: Colors.amber, size: 16),
                               const SizedBox(width: 4),
                               const Text(
                                 'Sync',
@@ -175,13 +183,17 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isDark
-                              ? [const Color(0xFF133E33), const Color(0xFF0D2821)]
+                              ? [
+                                  const Color(0xFF133E33),
+                                  const Color(0xFF0D2821)
+                                ]
                               : [Colors.white, const Color(0xFFF0FDF4)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: primaryColor.withOpacity(0.25)),
+                        border:
+                            Border.all(color: primaryColor.withOpacity(0.25)),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
@@ -194,14 +206,18 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Top Row: Title + Toggle View Mode Button
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          ResponsiveActionRow(
                             children: [
                               Text(
                                 _showChartInHeader
-                                    ? (_selectedChartType == 0 ? 'Xarajatlar (Doiraviy)' : 'Sana Bo\'yicha Dinamika (Chiziqli)')
+                                    ? (_selectedChartType == 0
+                                        ? 'Xarajatlar (Doiraviy)'
+                                        : 'Sana Bo\'yicha Dinamika (Chiziqli)')
                                     : 'Joriy Sof Balans',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w600),
                               ),
                               InkWell(
                                 onTap: () {
@@ -211,7 +227,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                 },
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
                                     color: primaryColor.withOpacity(0.14),
                                     borderRadius: BorderRadius.circular(12),
@@ -220,14 +237,22 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
-                                        _showChartInHeader ? Icons.account_balance_wallet_rounded : Icons.show_chart_rounded,
+                                        _showChartInHeader
+                                            ? Icons
+                                                .account_balance_wallet_rounded
+                                            : Icons.show_chart_rounded,
                                         size: 14,
                                         color: primaryColor,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        _showChartInHeader ? 'Balans' : 'Grafik',
-                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
+                                        _showChartInHeader
+                                            ? 'Balans'
+                                            : 'Grafik',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: primaryColor),
                                       ),
                                     ],
                                   ),
@@ -245,7 +270,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
                                 color: state.currentBalance >= 0
-                                    ? (isDark ? Colors.white : AppColors.textPrimary)
+                                    ? (isDark
+                                        ? Colors.white
+                                        : AppColors.textPrimary)
                                     : Colors.redAccent,
                               ),
                             ),
@@ -261,39 +288,60 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.green.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: Colors.green.withOpacity(0.2)),
+                                      border: Border.all(
+                                          color: Colors.green.withOpacity(0.2)),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Flexible(
                                               child: Text(
                                                 'Daromad 📈',
-                                                style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold),
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.green,
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                             const SizedBox(width: 4),
                                             InkWell(
-                                              onTap: () => _openAddModal(context, isExpense: false),
-                                              borderRadius: BorderRadius.circular(8),
+                                              onTap: () => _openAddModal(
+                                                  context,
+                                                  isExpense: false),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 3),
                                                 decoration: BoxDecoration(
                                                   color: Colors.green,
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
                                                 child: const Row(
-                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
                                                   children: [
-                                                    Icon(Icons.add, size: 12, color: Colors.white),
+                                                    Icon(Icons.add,
+                                                        size: 12,
+                                                        color: Colors.white),
                                                     SizedBox(width: 2),
                                                     Text(
                                                       'Qo\'shish',
-                                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                                                      style: TextStyle(
+                                                          fontSize: 9,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.white),
                                                     ),
                                                   ],
                                                 ),
@@ -304,7 +352,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                         const SizedBox(height: 6),
                                         Text(
                                           '${currencyFormat.format(state.totalIncome)} UZS',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
@@ -319,39 +369,60 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.red.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: Colors.red.withOpacity(0.2)),
+                                      border: Border.all(
+                                          color: Colors.red.withOpacity(0.2)),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Flexible(
                                               child: Text(
                                                 'Xarajat 📉',
-                                                style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.redAccent,
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                             const SizedBox(width: 4),
                                             InkWell(
-                                              onTap: () => _openAddModal(context, isExpense: true),
-                                              borderRadius: BorderRadius.circular(8),
+                                              onTap: () => _openAddModal(
+                                                  context,
+                                                  isExpense: true),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 3),
                                                 decoration: BoxDecoration(
                                                   color: Colors.redAccent,
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
                                                 child: const Row(
-                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
                                                   children: [
-                                                    Icon(Icons.add, size: 12, color: Colors.white),
+                                                    Icon(Icons.add,
+                                                        size: 12,
+                                                        color: Colors.white),
                                                     SizedBox(width: 2),
                                                     Text(
                                                       'Qo\'shish',
-                                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                                                      style: TextStyle(
+                                                          fontSize: 9,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.white),
                                                     ),
                                                   ],
                                                 ),
@@ -362,7 +433,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                         const SizedBox(height: 6),
                                         Text(
                                           '${currencyFormat.format(state.totalExpense)} UZS',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
@@ -376,16 +449,20 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 ChoiceChip(
-                                  label: const Text('Doiraviy 📊', style: TextStyle(fontSize: 10)),
+                                  label: const Text('Doiraviy 📊',
+                                      style: TextStyle(fontSize: 10)),
                                   selected: _selectedChartType == 0,
-                                  onSelected: (_) => setState(() => _selectedChartType = 0),
+                                  onSelected: (_) =>
+                                      setState(() => _selectedChartType = 0),
                                   visualDensity: VisualDensity.compact,
                                 ),
                                 const SizedBox(width: 4),
                                 ChoiceChip(
-                                  label: const Text('Chiziqli (Dinamika) 📈', style: TextStyle(fontSize: 10)),
+                                  label: const Text('Chiziqli (Dinamika) 📈',
+                                      style: TextStyle(fontSize: 10)),
                                   selected: _selectedChartType == 1,
-                                  onSelected: (_) => setState(() => _selectedChartType = 1),
+                                  onSelected: (_) =>
+                                      setState(() => _selectedChartType = 1),
                                   visualDensity: VisualDensity.compact,
                                 ),
                               ],
@@ -397,21 +474,34 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                               child: _selectedChartType == 0
                                   ? (categoryTotals.isEmpty
                                       ? const Center(
-                                          child: Text('Hozircha xarajatlar kiritilmagan', style: TextStyle(color: Colors.grey, fontSize: 12)))
+                                          child: Text(
+                                              'Hozircha xarajatlar kiritilmagan',
+                                              style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12)))
                                       : CustomPaint(
-                                          size: const Size(double.infinity, 165),
+                                          size:
+                                              const Size(double.infinity, 165),
                                           painter: DonutChartPainter(
                                             entries: categoryTotals.entries
-                                                .map((e) => ChartEntry(e.key.label, e.value, e.key.color))
+                                                .map((e) => ChartEntry(
+                                                    e.key.label,
+                                                    e.value,
+                                                    e.key.color))
                                                 .toList(),
                                             total: state.totalExpense,
                                           ),
                                         ))
                                   : (dateBarGroups.isEmpty
                                       ? const Center(
-                                          child: Text('Hozircha amallar kiritilmagan', style: TextStyle(color: Colors.grey, fontSize: 12)))
+                                          child: Text(
+                                              'Hozircha amallar kiritilmagan',
+                                              style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12)))
                                       : CustomPaint(
-                                          size: const Size(double.infinity, 165),
+                                          size:
+                                              const Size(double.infinity, 165),
                                           painter: DateLineChartPainter(
                                             groups: dateBarGroups,
                                             isDark: isDark,
@@ -420,7 +510,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                             ),
                             const SizedBox(height: 10),
 
-                            if (_selectedChartType == 0 && categoryTotals.isNotEmpty)
+                            if (_selectedChartType == 0 &&
+                                categoryTotals.isNotEmpty)
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 4,
@@ -428,9 +519,16 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                   return Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Container(width: 8, height: 8, decoration: BoxDecoration(color: e.key.color, shape: BoxShape.circle)),
+                                      Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                              color: e.key.color,
+                                              shape: BoxShape.circle)),
                                       const SizedBox(width: 4),
-                                      Text('${e.key.label}: ${currencyFormat.format(e.value)}', style: const TextStyle(fontSize: 10)),
+                                      Text(
+                                          '${e.key.label}: ${currencyFormat.format(e.value)}',
+                                          style: const TextStyle(fontSize: 10)),
                                     ],
                                   );
                                 }).toList(),
@@ -439,9 +537,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                               const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  _ChartLegendIndicator(color: Colors.green, label: 'Daromad Dinamikasi'),
+                                  _ChartLegendIndicator(
+                                      color: Colors.green,
+                                      label: 'Daromad Dinamikasi'),
                                   SizedBox(width: 16),
-                                  _ChartLegendIndicator(color: Colors.redAccent, label: 'Xarajat Dinamikasi'),
+                                  _ChartLegendIndicator(
+                                      color: Colors.redAccent,
+                                      label: 'Xarajat Dinamikasi'),
                                 ],
                               ),
                           ],
@@ -455,7 +557,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       // 1. GRAFIK MODE: Show 50/30/20 Financial Allocation Recommendations
                       const Text(
                         'Tavsiya Etilgan Taqsimot (50/30/20)',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),
                       const Text(
@@ -467,7 +570,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF16302A) : Colors.white,
+                          color:
+                              isDark ? const Color(0xFF16302A) : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
@@ -512,7 +616,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                         children: [
                           const Text(
                             'Kirim va Chiqimlar',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           Flexible(
                             child: SingleChildScrollView(
@@ -520,23 +625,29 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                               child: Row(
                                 children: [
                                   ChoiceChip(
-                                    label: const Text('Barchasi', style: TextStyle(fontSize: 11)),
+                                    label: const Text('Barchasi',
+                                        style: TextStyle(fontSize: 11)),
                                     selected: _filter == 'all',
-                                    onSelected: (_) => setState(() => _filter = 'all'),
+                                    onSelected: (_) =>
+                                        setState(() => _filter = 'all'),
                                     visualDensity: VisualDensity.compact,
                                   ),
                                   const SizedBox(width: 4),
                                   ChoiceChip(
-                                    label: const Text('Xarajat', style: TextStyle(fontSize: 11)),
+                                    label: const Text('Xarajat',
+                                        style: TextStyle(fontSize: 11)),
                                     selected: _filter == 'expense',
-                                    onSelected: (_) => setState(() => _filter = 'expense'),
+                                    onSelected: (_) =>
+                                        setState(() => _filter = 'expense'),
                                     visualDensity: VisualDensity.compact,
                                   ),
                                   const SizedBox(width: 4),
                                   ChoiceChip(
-                                    label: const Text('Daromad', style: TextStyle(fontSize: 11)),
+                                    label: const Text('Daromad',
+                                        style: TextStyle(fontSize: 11)),
                                     selected: _filter == 'income',
-                                    onSelected: (_) => setState(() => _filter = 'income'),
+                                    onSelected: (_) =>
+                                        setState(() => _filter = 'income'),
                                     visualDensity: VisualDensity.compact,
                                   ),
                                 ],
@@ -551,7 +662,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                         Container(
                           padding: const EdgeInsets.all(32),
                           alignment: Alignment.center,
-                          child: const Text('Ma\'lumotlar topilmadi', style: TextStyle(color: Colors.grey)),
+                          child: const Text('Ma\'lumotlar topilmadi',
+                              style: TextStyle(color: Colors.grey)),
                         )
                       else
                         ...filteredTransactions.map((t) {
@@ -566,10 +678,13 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                 color: Colors.redAccent,
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child: const Icon(Icons.delete_rounded, color: Colors.white),
+                              child: const Icon(Icons.delete_rounded,
+                                  color: Colors.white),
                             ),
                             onDismissed: (_) {
-                              ref.read(financeProvider.notifier).removeTransaction(t.id);
+                              ref
+                                  .read(financeProvider.notifier)
+                                  .removeTransaction(t.id);
                               showAppToast(
                                 context,
                                 'O\'chirildi: ${t.title}',
@@ -583,7 +698,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                 margin: const EdgeInsets.only(bottom: 10),
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF16302A) : Colors.white,
+                                  color: isDark
+                                      ? const Color(0xFF16302A)
+                                      : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
@@ -598,32 +715,46 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: t.category.color.withOpacity(0.15),
+                                        color:
+                                            t.category.color.withOpacity(0.15),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: Icon(t.category.icon, color: t.category.color, size: 20),
+                                      child: Icon(t.category.icon,
+                                          color: t.category.color, size: 20),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
                                               Expanded(
                                                 child: Text(
                                                   t.title,
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 14),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
-                                              Icon(Icons.edit_outlined, size: 14, color: Colors.grey.withOpacity(0.7)),
+                                              Icon(Icons.edit_outlined,
+                                                  size: 14,
+                                                  color: Colors.grey
+                                                      .withOpacity(0.7)),
                                             ],
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             '${t.category.label} • ${DateFormat('dd.MM.yyyy HH:mm').format(t.date)}',
-                                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: isDark
+                                                    ? Colors.white60
+                                                    : Colors.black54),
                                           ),
                                         ],
                                       ),
@@ -634,7 +765,9 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
-                                        color: t.isExpense ? Colors.redAccent : Colors.green,
+                                        color: t.isExpense
+                                            ? Colors.redAccent
+                                            : Colors.green,
                                       ),
                                     ),
                                   ],
@@ -671,10 +804,12 @@ class _ChartLegendIndicator extends StatelessWidget {
         Container(
           width: 10,
           height: 10,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+          decoration: BoxDecoration(
+              color: color, borderRadius: BorderRadius.circular(3)),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        Text(label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -709,7 +844,8 @@ class _AllocationProgressRow extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -717,7 +853,8 @@ class _AllocationProgressRow extends StatelessWidget {
             Flexible(
               child: Text(
                 '${currencyFormat.format(actual)} / ${currencyFormat.format(target)} UZS',
-                style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: 11, color: color, fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
               ),
@@ -758,7 +895,8 @@ class DonutChartPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) / 2 - 10;
     const strokeWidth = 26.0;
-    final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
+    final rect =
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
 
     double startAngle = -pi / 2;
     for (final entry in entries) {
@@ -821,8 +959,10 @@ class DateLineChartPainter extends CustomPainter {
       final g = groups[i];
       final x = count > 1 ? i * stepX : size.width / 2;
 
-      final incY = topPadding + (chartHeight - (g.income / maxVal) * chartHeight);
-      final expY = topPadding + (chartHeight - (g.expense / maxVal) * chartHeight);
+      final incY =
+          topPadding + (chartHeight - (g.income / maxVal) * chartHeight);
+      final expY =
+          topPadding + (chartHeight - (g.expense / maxVal) * chartHeight);
 
       incomePoints.add(Offset(x, incY));
       expensePoints.add(Offset(x, expY));
@@ -832,9 +972,12 @@ class DateLineChartPainter extends CustomPainter {
     final gridPaint = Paint()
       ..color = (isDark ? Colors.white : Colors.black).withOpacity(0.06)
       ..strokeWidth = 1.0;
-    canvas.drawLine(Offset(0, topPadding), Offset(size.width, topPadding), gridPaint);
-    canvas.drawLine(Offset(0, topPadding + chartHeight / 2), Offset(size.width, topPadding + chartHeight / 2), gridPaint);
-    canvas.drawLine(Offset(0, topPadding + chartHeight), Offset(size.width, topPadding + chartHeight), gridPaint);
+    canvas.drawLine(
+        Offset(0, topPadding), Offset(size.width, topPadding), gridPaint);
+    canvas.drawLine(Offset(0, topPadding + chartHeight / 2),
+        Offset(size.width, topPadding + chartHeight / 2), gridPaint);
+    canvas.drawLine(Offset(0, topPadding + chartHeight),
+        Offset(size.width, topPadding + chartHeight), gridPaint);
 
     // 1. Draw Income Line (Green)
     final incomePath = Path();
@@ -901,7 +1044,8 @@ class DateLineChartPainter extends CustomPainter {
         ),
       );
       textPainter.layout();
-      final labelX = (x - textPainter.width / 2).clamp(0.0, size.width - textPainter.width);
+      final labelX = (x - textPainter.width / 2)
+          .clamp(0.0, size.width - textPainter.width);
       textPainter.paint(canvas, Offset(labelX, size.height - 16));
     }
   }
