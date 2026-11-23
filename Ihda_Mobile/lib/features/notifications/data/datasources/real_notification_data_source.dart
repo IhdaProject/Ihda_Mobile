@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -13,14 +14,23 @@ import 'notification_data_source.dart';
 
 class RealNotificationDataSource implements NotificationDataSource {
   final FlutterLocalNotificationsPlugin _plugin;
-  static const MethodChannel _androidChannel = MethodChannel('uz.ihda.mobile/notifications');
+  static const MethodChannel _androidChannel =
+      MethodChannel('uz.ihda.mobile/notifications');
 
   bool _initialized = false;
   void Function(String route, String payload)? _onTapCallback;
 
   RealNotificationDataSource(this._plugin);
 
-  Future<void> init() async {
+  Future<void>? _initializing;
+
+  Future<void> init() =>
+      _initializing ??= _initialize().catchError((Object error) {
+        _initializing = null;
+        throw error;
+      });
+
+  Future<void> _initialize() async {
     if (_initialized) return;
 
     // 1. Timezone setup
@@ -31,17 +41,21 @@ class RealNotificationDataSource implements NotificationDataSource {
     } catch (_) {
       try {
         tz.setLocalLocation(tz.getLocation('Asia/Tashkent'));
-      } catch (_) {}
+      } catch (_) {
+        rethrow;
+      }
     }
 
     // 2. Plugin initialization for iOS
-    const androidInit = AndroidInitializationSettings('@drawable/ic_stat_prayer');
+    const androidInit =
+        AndroidInitializationSettings('@drawable/ic_stat_prayer');
     const iosInit = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
     );
-    const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+    const initSettings =
+        InitializationSettings(android: androidInit, iOS: iosInit);
 
     await _plugin.initialize(
       initSettings,
@@ -75,7 +89,8 @@ class RealNotificationDataSource implements NotificationDataSource {
   }
 
   @override
-  void setOnNotificationTap(void Function(String route, String payload) callback) {
+  void setOnNotificationTap(
+      void Function(String route, String payload) callback) {
     _onTapCallback = callback;
   }
 
@@ -84,14 +99,17 @@ class RealNotificationDataSource implements NotificationDataSource {
     await init();
     if (Platform.isAndroid) {
       try {
-        final map = await _androidChannel.invokeMethod<Map>('getInitialNotificationPayload');
+        final map = await _androidChannel
+            .invokeMethod<Map>('getInitialNotificationPayload');
         if (map != null) {
           return {
             'targetRoute': map['targetRoute']?.toString() ?? '/',
             'payload': map['payload']?.toString() ?? '',
           };
         }
-      } catch (_) {}
+      } catch (_) {
+        rethrow;
+      }
     } else {
       final launchDetails = await _plugin.getNotificationAppLaunchDetails();
       if (launchDetails != null &&
@@ -103,7 +121,9 @@ class RealNotificationDataSource implements NotificationDataSource {
             'targetRoute': data['targetRoute']?.toString() ?? '/',
             'payload': data['payload']?.toString() ?? '',
           };
-        } catch (_) {}
+        } catch (_) {
+          rethrow;
+        }
       }
     }
     return null;
@@ -116,15 +136,19 @@ class RealNotificationDataSource implements NotificationDataSource {
     final status = await Permission.notification.request();
 
     if (Platform.isAndroid) {
-      final androidImpl = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
       if (androidImpl != null) {
         await androidImpl.requestNotificationsPermission();
         await androidImpl.requestExactAlarmsPermission();
       }
     } else if (Platform.isIOS) {
-      final iosImpl = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+      final iosImpl = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
       if (iosImpl != null) {
-        await iosImpl.requestPermissions(alert: true, badge: true, sound: true);
+        return await iosImpl.requestPermissions(
+                alert: true, badge: true, sound: true) ??
+            false;
       }
     }
 
@@ -137,7 +161,8 @@ class RealNotificationDataSource implements NotificationDataSource {
     if (status.isGranted) return true;
 
     if (Platform.isAndroid) {
-      final androidImpl = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
       if (androidImpl != null) {
         final granted = await androidImpl.areNotificationsEnabled();
         if (granted == true) return true;
@@ -174,12 +199,15 @@ class RealNotificationDataSource implements NotificationDataSource {
           'targetRoute': targetRoute,
           'payload': payload,
         });
-      } catch (_) {}
+      } catch (_) {
+        rethrow;
+      }
     } else {
-      final details = _buildDarwinDetails(soundType, customAudioPath);
+      final details = await _buildDarwinDetails(soundType, customAudioPath);
       final location = tz.local;
       final scheduledTzTime = tz.TZDateTime.from(scheduledTime, location);
-      final payloadJson = jsonEncode({'targetRoute': targetRoute, 'payload': payload});
+      final payloadJson =
+          jsonEncode({'targetRoute': targetRoute, 'payload': payload});
 
       try {
         await _plugin.zonedSchedule(
@@ -189,10 +217,13 @@ class RealNotificationDataSource implements NotificationDataSource {
           scheduledTzTime,
           NotificationDetails(iOS: details),
           androidScheduleMode: AndroidScheduleMode.alarmClock,
-          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
           payload: payloadJson,
         );
-      } catch (_) {}
+      } catch (_) {
+        rethrow;
+      }
     }
   }
 
@@ -202,7 +233,9 @@ class RealNotificationDataSource implements NotificationDataSource {
     if (Platform.isAndroid) {
       try {
         await _androidChannel.invokeMethod('cancelAlarm', {'id': id});
-      } catch (_) {}
+      } catch (_) {
+        rethrow;
+      }
     }
     await _plugin.cancel(id);
   }
@@ -213,7 +246,9 @@ class RealNotificationDataSource implements NotificationDataSource {
     if (Platform.isAndroid) {
       try {
         await _androidChannel.invokeMethod('cancelAllAlarms');
-      } catch (_) {}
+      } catch (_) {
+        rethrow;
+      }
     }
     await _plugin.cancelAll();
   }
@@ -239,10 +274,13 @@ class RealNotificationDataSource implements NotificationDataSource {
           'targetRoute': targetRoute,
           'payload': payload,
         });
-      } catch (_) {}
+      } catch (_) {
+        rethrow;
+      }
     } else {
-      final details = _buildDarwinDetails(soundType, customAudioPath);
-      final payloadJson = jsonEncode({'targetRoute': targetRoute, 'payload': payload});
+      final details = await _buildDarwinDetails(soundType, customAudioPath);
+      final payloadJson =
+          jsonEncode({'targetRoute': targetRoute, 'payload': payload});
       await _plugin.show(
         999,
         title,
@@ -275,23 +313,33 @@ class RealNotificationDataSource implements NotificationDataSource {
     );
   }
 
-  DarwinNotificationDetails _buildDarwinDetails(
+  Future<DarwinNotificationDetails> _buildDarwinDetails(
     NotificationSoundType soundType,
     String? customAudioPath,
-  ) {
+  ) async {
     String? soundFile;
     bool presentSound = true;
 
     switch (soundType) {
       case NotificationSoundType.azaan:
-        soundFile = 'chalo_chalo.mp3';
+        soundFile = 'azan.caf';
         break;
       case NotificationSoundType.shortChime:
-        soundFile = 'short_chime.mp3';
+        soundFile = 'short_chime.wav';
         break;
       case NotificationSoundType.customDevice:
         if (customAudioPath != null && customAudioPath.isNotEmpty) {
-          soundFile = customAudioPath;
+          final source = File(customAudioPath);
+          final extension = customAudioPath.split('.').last.toLowerCase();
+          if (!['wav', 'caf', 'aiff'].contains(extension)) {
+            throw UnsupportedError(
+                'iPhone bildirishnoma ovozi WAV, CAF yoki AIFF formatida bo‘lishi kerak');
+          }
+          final library = await getLibraryDirectory();
+          final sounds = Directory('${library.path}/Sounds');
+          await sounds.create(recursive: true);
+          soundFile = source.uri.pathSegments.last;
+          await source.copy('${sounds.path}/$soundFile');
         } else {
           soundFile = null;
         }
